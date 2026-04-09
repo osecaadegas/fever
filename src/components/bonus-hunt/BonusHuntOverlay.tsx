@@ -265,17 +265,15 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       if (root) {
         const t = now / 1000;
         root.querySelectorAll<HTMLElement>('.bht-cpt-card--super').forEach(card => {
-          const p = (Math.sin(t * 2.1) + 1) / 2; // 0→1 smoothly ~3s cycle
-          const spread = 2 + p * 8;
-          const blur = 8 + p * 14;
-          const a = 0.25 + p * 0.45;
-          const bA = 0.5 + p * 0.5;
-          card.style.boxShadow = `0 0 ${blur}px ${spread}px rgba(234,179,8,${a}), inset 0 0 ${8 + p * 6}px ${1 + p * 3}px rgba(234,179,8,${a * 0.35})`;
-          card.style.borderColor = `rgba(234,179,8,${bA})`;
+          // Pulse the card itself (scale breathe), keep static glow
+          const p = (Math.sin(t * 2.1) + 1) / 2; // 0→1 ~3s
+          const s = 1 + p * 0.025; // scale 1.0 → 1.025
+          card.style.transform = `scale(${s})`;
         });
         root.querySelectorAll<HTMLElement>('.bht-cpt-card--extreme').forEach(card => {
-          const vx = Math.sin(t * 55) * 1.2;
-          const vy = Math.cos(t * 67) * 0.9;
+          // Slower, smoother trill
+          const vx = Math.sin(t * 18) * 0.7;
+          const vy = Math.cos(t * 23) * 0.5;
           card.style.transform = `translate(${vx}px, ${vy}px)`;
         });
       }
