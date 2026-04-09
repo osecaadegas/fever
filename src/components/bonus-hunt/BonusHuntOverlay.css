@@ -510,10 +510,9 @@
   color: #fde68a;
 }
 
-/* ── Opening mode: shorter bonus list ── */
+/* ── Opening mode: list fills middle, best slot pinned to bottom ── */
 .bht11--opening .bht11-list-section {
-  flex: 0 0 auto;
-  max-height: 160px;
+  flex: 1 1 0;
   min-height: 0;
 }
 
