@@ -338,33 +338,22 @@
   font-size: 1em;
 }
 
-/* ── Compact track (auto-scroll) ── */
+/* ── Compact track (auto-scroll driven by JS) ── */
 .bht-compact-track {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   will-change: transform;
-}
-@keyframes bht-compact-scroll {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-50%); }
-}
-.bht-compact-track--scroll {
-  animation-name: bht-compact-scroll;
-  animation-duration: var(--bht-scroll-duration, 15s);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-play-state: running;
 }
 
 /* ── Compact bonus cards (full-bleed image) ── */
 .bht-cpt-card {
   position: relative;
   flex-shrink: 0;
-  height: 62px;
-  border-radius: 10px;
+  height: 82px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(96,165,250,0.1);
+  border: 1px solid rgba(96,165,250,0.15);
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .bht-cpt-card--active {
@@ -399,6 +388,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
   display: block;
 }
 .bht-cpt-card-img-ph {
@@ -410,12 +400,14 @@
 /* Type badges */
 .bht-cpt-badge {
   position: absolute;
-  top: 4px; right: 5px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 0.5em;
-  font-weight: 800;
-  letter-spacing: 0.6px;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.55em;
+  font-weight: 900;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   z-index: 4;
 }
@@ -440,9 +432,9 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  padding: 6px 10px;
-  background: linear-gradient(90deg, rgba(6,10,32,0.92) 0%, rgba(6,10,32,0.7) 55%, rgba(6,10,32,0.15) 100%);
+  gap: 4px;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, rgba(6,10,32,0.88) 0%, rgba(6,10,32,0.6) 45%, rgba(6,10,32,0.05) 75%);
 }
 .bht-cpt-card-row1 {
   display: flex;
@@ -450,15 +442,15 @@
   gap: 5px;
 }
 .bht-cpt-card-idx {
-  font-size: 0.7em;
-  font-weight: 800;
-  color: rgba(255,255,255,0.5);
+  font-size: 0.8em;
+  font-weight: 900;
+  color: rgba(255,255,255,0.6);
   flex-shrink: 0;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 4px rgba(0,0,0,1);
 }
 .bht-cpt-card-name {
-  font-size: 0.82em;
-  font-weight: 800;
+  font-size: 0.92em;
+  font-weight: 900;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
@@ -466,19 +458,19 @@
   text-transform: uppercase;
   flex: 1;
   min-width: 0;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  text-shadow: 0 1px 6px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,0.6);
 }
 .bht-cpt-card-row2 {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72em;
+  gap: 8px;
+  font-size: 0.78em;
 }
 .bht-cpt-card-bet {
-  font-weight: 700;
+  font-weight: 800;
   color: #93c5fd;
   white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 4px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.5);
 }
 .bht-cpt-card-payout {
   font-weight: 700;
@@ -507,7 +499,7 @@
 
 /* Extreme card tint */
 .bht-cpt-card--extreme .bht-cpt-card-info {
-  background: linear-gradient(90deg, rgba(60,10,10,0.9) 0%, rgba(60,10,10,0.6) 55%, rgba(60,10,10,0.1) 100%);
+  background: linear-gradient(90deg, rgba(60,10,10,0.88) 0%, rgba(60,10,10,0.55) 45%, rgba(60,10,10,0.05) 75%);
 }
 .bht-cpt-card--extreme .bht-cpt-card-name {
   color: #fca5a5;
@@ -515,7 +507,7 @@
 
 /* Super card tint */
 .bht-cpt-card--super .bht-cpt-card-info {
-  background: linear-gradient(90deg, rgba(60,40,5,0.9) 0%, rgba(60,40,5,0.6) 55%, rgba(60,40,5,0.1) 100%);
+  background: linear-gradient(90deg, rgba(60,40,5,0.88) 0%, rgba(60,40,5,0.55) 45%, rgba(60,40,5,0.05) 75%);
 }
 .bht-cpt-card--super .bht-cpt-card-name {
   color: #fde68a;

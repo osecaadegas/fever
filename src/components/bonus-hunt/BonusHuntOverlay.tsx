@@ -225,6 +225,30 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
     }
   }, [isOpening, currentIndex, positionAll]);
 
+  /* ── Auto-scroll for bonus list ── */
+  const scrollTrackRef = useRef<HTMLDivElement>(null);
+  const scrollRaf = useRef<number>(0);
+  const scrollOffset = useRef(0);
+
+  useEffect(() => {
+    if (bonuses.length < 3) return;
+    const speed = 30; // pixels per second
+    let lastTime = 0;
+    const tick = (now: number) => {
+      if (!scrollTrackRef.current) { scrollRaf.current = requestAnimationFrame(tick); return; }
+      if (lastTime === 0) lastTime = now;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      scrollOffset.current += speed * dt;
+      const half = scrollTrackRef.current.scrollHeight / 2;
+      if (half > 0 && scrollOffset.current >= half) scrollOffset.current -= half;
+      scrollTrackRef.current.style.transform = `translateY(-${scrollOffset.current}px)`;
+      scrollRaf.current = requestAnimationFrame(tick);
+    };
+    scrollRaf.current = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(scrollRaf.current); };
+  }, [bonuses.length]);
+
   return (
     <div className="bht11" style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', width: '100%', height: '100%', overflow: 'hidden' }}>
 
@@ -369,8 +393,7 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
               );
             }
             return (
-              <div key="compact-scroll" className="bht-compact-track bht-compact-track--scroll"
-                style={{ '--bht-scroll-duration': `${bonuses.length * 2.5}s` } as React.CSSProperties}>
+              <div key="compact-scroll" ref={scrollTrackRef} className="bht-compact-track">
                 {[...bonuses, ...bonuses].map((b, i) => {
                   const idx = i % bonuses.length;
                   return renderCompactCard(b, idx, `${b.id || idx}-${i >= bonuses.length ? 'c' : 'o'}`);
