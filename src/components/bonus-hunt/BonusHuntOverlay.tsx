@@ -90,88 +90,140 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
   }, [bonuses, startMoney, stopLoss]);
 
   /* ══════════════════════════════════════════════════════
-     3D Carousel — 100% imperative DOM, React never touches positions
+     3D Carousel — Imperative DOM animation system
+     ──────────────────────────────────────────────────────
+     WHY IMPERATIVE: React re-renders on every Supabase update,
+     which destroys/recreates DOM nodes and kills CSS transitions.
+     By decoupling the visual carousel state from React rendering,
+     we ensure the SAME DOM nodes persist and CSS transitions work.
      ══════════════════════════════════════════════════════ */
+
   const stageRef = useRef<HTMLDivElement>(null);
   const centerRef = useRef(0);
+  const initializedRef = useRef(false);
+  const prevBonusCountRef = useRef(0);
 
-  // Position presets: [translateX, translateZ, rotateY, scale, opacity, blur]
-  const SLOTS: [number, number, number, number, number, number][] = [
-    [-170, -120, 35, 0.65, 0.3, 1],   // -2
-    [-95,  -50,  20, 0.85, 0.7, 0],   // -1
-    [0,     20,   0, 1,    1,   0],   //  0 (center)
-    [95,   -50, -20, 0.85, 0.7, 0],   //  1
-    [170, -120, -35, 0.65, 0.3, 1],   //  2
-  ];
+  /*
+   * Position presets indexed by slot offset from center (-2 to +2).
+   * Each tuple: [translateX, translateZ, rotateY, scale, opacity, blur]
+   * Cards outside this range get directional exit positions.
+   */
+  const SLOT_PRESETS: readonly (readonly [number, number, number, number, number, number])[] = [
+    [-170, -120, 35, 0.65, 0.3, 1],   // offset -2 (far left)
+    [-95,  -50,  20, 0.85, 0.7, 0],   // offset -1 (left)
+    [0,     20,   0, 1,    1,   0],   // offset  0 (center)
+    [95,   -50, -20, 0.85, 0.7, 0],   // offset +1 (right)
+    [170, -120, -35, 0.65, 0.3, 1],   // offset +2 (far right)
+  ] as const;
 
-  const positionCards = useCallback((ci: number) => {
+  /**
+   * Apply position to a single card element.
+   * Uses data-idx attribute to identify cards, NOT DOM child order.
+   */
+  const applyPosition = (el: HTMLElement, dist: number) => {
+    const slotIdx = dist + 2; // map -2..+2 → 0..4
+    const slot = SLOT_PRESETS[slotIdx];
+
+    if (slot) {
+      const [tx, tz, ry, sc, op, bl] = slot;
+      el.style.transform = `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
+      el.style.opacity = String(op);
+      el.style.filter = bl > 0 ? `brightness(0.45) blur(${bl}px)` : '';
+      el.style.zIndex = dist === 0 ? '3' : Math.abs(dist) === 1 ? '1' : '0';
+      el.style.pointerEvents = '';
+    } else {
+      // Card is beyond visible range → exit in the direction it was heading
+      // This prevents "teleporting through center" when wrapping around
+      const exitX = dist < 0 ? -260 : 260;
+      const exitRY = dist < 0 ? 50 : -50;
+      el.style.transform = `translateX(${exitX}px) translateZ(-200px) rotateY(${exitRY}deg) scale(0.4)`;
+      el.style.opacity = '0';
+      el.style.filter = 'brightness(0.3) blur(3px)';
+      el.style.zIndex = '-1';
+      el.style.pointerEvents = 'none';
+    }
+  };
+
+  /**
+   * Position ALL cards relative to the given center index.
+   * Looks up cards by data-idx attribute for React-reconciliation safety.
+   * @param ci - The bonus index that should be centered
+   * @param animate - Whether CSS transitions should be active
+   */
+  const positionAllCards = useCallback((ci: number, animate: boolean) => {
     const stage = stageRef.current;
     if (!stage) return;
-    const cards = stage.children;
+    const cards = stage.querySelectorAll<HTMLElement>('[data-idx]');
     const total = cards.length;
     if (total === 0) return;
 
-    for (let i = 0; i < total; i++) {
-      const el = cards[i] as HTMLElement;
-      const rawDist = ((i - ci) % total + total) % total;
-      const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
-      const slotIdx = dist + 2; // map -2..2 to 0..4
-      const slot = SLOTS[slotIdx];
-
-      if (slot) {
-        const [tx, tz, ry, sc, op, bl] = slot;
-        el.style.transform = `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
-        el.style.opacity = String(op);
-        el.style.filter = bl > 0 ? `brightness(0.45) blur(${bl}px)` : '';
-        el.style.zIndex = dist === 0 ? '3' : Math.abs(dist) === 1 ? '1' : '0';
-        el.style.pointerEvents = '';
+    cards.forEach((el) => {
+      // Toggle transition
+      if (animate) {
+        el.classList.remove('no-transition');
       } else {
-        const exitX = dist < 0 ? -260 : 260;
-        const exitRY = dist < 0 ? 50 : -50;
-        el.style.transform = `translateX(${exitX}px) translateZ(-200px) rotateY(${exitRY}deg) scale(0.4)`;
-        el.style.opacity = '0';
-        el.style.filter = 'brightness(0.3) blur(3px)';
-        el.style.zIndex = '-1';
-        el.style.pointerEvents = 'none';
+        el.classList.add('no-transition');
       }
+
+      const idx = parseInt(el.getAttribute('data-idx') || '0', 10);
+      const rawDist = ((idx - ci) % total + total) % total;
+      const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
+      applyPosition(el, dist);
+    });
+
+    // If we disabled transitions, force a reflow to commit positions,
+    // then re-enable so NEXT position change will animate
+    if (!animate) {
+      void stage.offsetHeight; // force reflow
+      cards.forEach((el) => el.classList.remove('no-transition'));
     }
   }, []);
 
-  // Initial paint BEFORE browser paints — no transition, no flash
+  /*
+   * Initial positioning — runs ONCE on mount (no animation).
+   * Also handles card count changes (new bonuses added/removed).
+   */
   useLayoutEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const cards = stage.children;
-    for (let i = 0; i < cards.length; i++) {
-      (cards[i] as HTMLElement).classList.add('no-transition');
-    }
-    const ci = isOpening && currentIndex >= 0 ? currentIndex : 0;
-    centerRef.current = ci;
-    positionCards(ci);
-    // Force layout so positions are committed, then re-enable transitions
-    void stage.offsetHeight;
-    for (let i = 0; i < cards.length; i++) {
-      (cards[i] as HTMLElement).classList.remove('no-transition');
-    }
-  }, [bonuses.length]);
+    if (bonuses.length === 0) return;
 
-  // Auto-rotate timer — only writes positions, CSS handles the animation
+    if (!initializedRef.current) {
+      // FIRST MOUNT: position without animation
+      initializedRef.current = true;
+      const ci = isOpening && currentIndex >= 0 ? currentIndex : 0;
+      centerRef.current = ci;
+      positionAllCards(ci, false);
+    } else if (bonuses.length !== prevBonusCountRef.current) {
+      // Card count changed: reposition without animation to avoid jumps
+      // Keep current center, just clamp it
+      centerRef.current = Math.min(centerRef.current, bonuses.length - 1);
+      positionAllCards(centerRef.current, false);
+    }
+    prevBonusCountRef.current = bonuses.length;
+  }, [bonuses.length, positionAllCards]);
+
+  /*
+   * Auto-rotate timer.
+   * Uses setInterval + positionAllCards(animated).
+   * Cleaned up when entering opening mode or when card count changes.
+   */
   useEffect(() => {
     if (bonuses.length < 2 || isOpening) return;
     const id = setInterval(() => {
       centerRef.current = (centerRef.current + 1) % bonuses.length;
-      positionCards(centerRef.current);
+      positionAllCards(centerRef.current, true);
     }, 2500);
     return () => clearInterval(id);
-  }, [bonuses.length, isOpening, positionCards]);
+  }, [bonuses.length, isOpening, positionAllCards]);
 
-  // Snap to currentIndex during opening
+  /*
+   * Opening mode: snap to the current opening index (with animation).
+   */
   useEffect(() => {
     if (isOpening && currentIndex >= 0) {
       centerRef.current = currentIndex;
-      positionCards(currentIndex);
+      positionAllCards(currentIndex, true);
     }
-  }, [isOpening, currentIndex, positionCards]);
+  }, [isOpening, currentIndex, positionAllCards]);
 
   return (
     <div className="bht11" style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -235,6 +287,7 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
           <div className="bht-carousel-stage" ref={stageRef}>
             {bonuses.map((bonus, bIdx) => (
               <div key={bonus.id || `card-${bonus.slotName}-${bIdx}`}
+                data-idx={bIdx}
                 className="bht-carousel-card">
                 <div className="bht-stack-card-inner">
                   <div className="bht-stack-card-img-wrap">
