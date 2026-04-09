@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import './BonusHuntOverlay.css';
 

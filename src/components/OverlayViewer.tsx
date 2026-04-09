@@ -146,7 +146,7 @@ export function OverlayViewer({ overlayId }: OverlayViewerProps) {
 
     const fetchCryptoPrices = async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,litecoin,binancecoin,solana,ripple,cardano,dogecoin&vs_currencies=usd');
+        const response = await fetch('/api/crypto-prices');
         const data = await response.json();
         setCryptoPrices({
           BTC: data.bitcoin?.usd ? Math.round(data.bitcoin.usd).toLocaleString('en-US') : '...',
