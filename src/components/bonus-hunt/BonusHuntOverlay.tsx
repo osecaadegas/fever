@@ -457,6 +457,23 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
               })}
             />
 
+            {/* Progress bar */}
+            <div className="flex items-center gap-2 px-4 pt-1 pb-1 flex-shrink-0">
+              <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${items.length > 0 ? (openedItems.length / items.length) * 100 : 0}%`,
+                    background: 'linear-gradient(90deg, #60a5fa, #a855f7)',
+                    boxShadow: '0 0 8px rgba(96,165,250,0.5)',
+                  }}
+                />
+              </div>
+              <span className="text-[9px] font-bold text-white/60 whitespace-nowrap">
+                {openedItems.length}/{items.length}
+              </span>
+            </div>
+
             <div className="flex items-center gap-2 mb-2 px-4 pt-1 flex-shrink-0">
               <div className="w-1 h-5 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
               <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#fbbf24' }}>
@@ -465,10 +482,16 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
             </div>
 
             <div className="flex-1 overflow-hidden px-4 pb-4">
+              <style>{`
+                @keyframes huntListScroll {
+                  0% { transform: translateY(0); }
+                  100% { transform: translateY(-50%); }
+                }
+              `}</style>
               <div
                 className="space-y-2"
                 style={{
-                  animation: items.length > 4 ? 'scroll 28s linear infinite' : 'none'
+                  animation: items.length > 4 ? `huntListScroll ${Math.max(15, items.length * 3)}s linear infinite` : 'none'
                 }}
               >
                 {scrollingItems.map((item, index) => {

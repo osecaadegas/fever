@@ -702,7 +702,7 @@ export function BonusOpeningOverlay({ openingId, huntId, embedded = false }: Bon
               <div
                 className="space-y-2"
                 style={{
-                  animation: items.length > 4 ? 'scroll 28s linear infinite' : 'none'
+                  animation: items.length > 4 ? `scroll ${Math.max(15, items.length * 3)}s linear infinite` : 'none'
                 }}
               >
                 {scrollingItems.map((item, index) => {
