@@ -455,9 +455,36 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bonus_hunt_items' },
         (payload) => {
-          if (currentHuntIdRef.current) {
-            loadHuntItems(currentHuntIdRef.current);
+          if (!currentHuntIdRef.current) return;
+          const n = payload.new as any;
+          const o = payload.old as any;
+
+          if (payload.eventType === 'UPDATE' && n.hunt_id === currentHuntIdRef.current) {
+            // Surgical patch — only update the changed item in-place
+            setItems(prev => {
+              const idx = prev.findIndex(it => it.id === n.id);
+              if (idx < 0) return prev;
+              const old = prev[idx];
+              // Skip if nothing overlay-relevant changed
+              if (old.result_amount === n.result_amount &&
+                  old.status === n.status &&
+                  old.slot_name === n.slot_name &&
+                  old.payment_amount === n.payment_amount &&
+                  old.bet_amount === n.bet_amount &&
+                  old.is_super_bonus === n.is_super_bonus &&
+                  old.is_extreme_bonus === n.is_extreme_bonus &&
+                  old.slot_image_url === n.slot_image_url) {
+                return prev;
+              }
+              const copy = [...prev];
+              copy[idx] = { ...old, ...n };
+              return copy;
+            });
+            return;
           }
+
+          // INSERT / DELETE → full reload
+          loadHuntItems(currentHuntIdRef.current);
         }
       )
       .subscribe();
