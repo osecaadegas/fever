@@ -17,6 +17,7 @@
   border: 1.5px solid rgba(96,165,250,0.12);
   height: 100%;
   box-sizing: border-box;
+  contain: layout style;
 }
 
 /* ── 1. Header ── */
@@ -357,7 +358,6 @@
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(96,165,250,0.15);
-  transition: border-color 0.3s, box-shadow 0.3s;
 }
 .bht-cpt-card--active {
   border-color: rgba(134,239,172,0.6);

@@ -217,9 +217,9 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
     return () => clearInterval(id);
   }, [bonuses.length, isOpening, positionAll]);
 
-  // Opening mode: snap to current with animation
+  // Opening mode: snap to current with animation (only when center actually changes)
   useEffect(() => {
-    if (isOpening && currentIndex >= 0) {
+    if (isOpening && currentIndex >= 0 && centerRef.current !== currentIndex) {
       centerRef.current = currentIndex;
       positionAll(currentIndex, true);
     }
@@ -230,12 +230,16 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
   const bonusListRef = useRef<HTMLDivElement>(null);
   const scrollRaf = useRef<number>(0);
   const scrollOffset = useRef(0);
+  const scrollRunning = useRef(false);
 
   useEffect(() => {
-    if (bonuses.length < 3) return;
+    // Start once when bonuses >= 3; never restart if already running
+    if (bonuses.length < 3 || scrollRunning.current) return;
+    scrollRunning.current = true;
     const speed = 30; // pixels per second
     let lastTime = 0;
     const tick = (now: number) => {
+      if (!scrollRunning.current) return;
       if (!scrollTrackRef.current) { scrollRaf.current = requestAnimationFrame(tick); return; }
       if (lastTime === 0) lastTime = now;
       const dt = (now - lastTime) / 1000;
@@ -247,7 +251,7 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       scrollRaf.current = requestAnimationFrame(tick);
     };
     scrollRaf.current = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(scrollRaf.current); };
+    return () => { scrollRunning.current = false; cancelAnimationFrame(scrollRaf.current); };
   }, [bonuses.length]);
 
   return (
