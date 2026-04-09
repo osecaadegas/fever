@@ -26,9 +26,9 @@ export function MainStreamOverlay() {
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enterStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const EXIT_DURATION_MS = 450;
-  const SWITCH_DELAY_MS = 2000;
-  const ENTER_DURATION_MS = 450;
+  const EXIT_DURATION_MS = 700;
+  const SWITCH_DELAY_MS = 400;
+  const ENTER_DURATION_MS = 700;
 
   useEffect(() => {
     initializeOverlays();
@@ -351,30 +351,34 @@ export function MainStreamOverlay() {
   return (
     <div className="w-[1920px] h-[1080px] bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 relative overflow-hidden" style={{ margin: 0, padding: 0 }}>
       <style>{`
-        @keyframes slideInFromRight {
+        @keyframes slideOutToLeft {
           from {
-            transform: translateX(100%);
+            transform: translateX(0);
+            opacity: 1;
           }
           to {
-            transform: translateX(0);
+            transform: translateX(-100%);
+            opacity: 0;
           }
         }
 
-        @keyframes slideOutToRight {
+        @keyframes slideInFromRight {
           from {
-            transform: translateX(0);
+            transform: translateX(100%);
+            opacity: 0;
           }
           to {
-            transform: translateX(100%);
+            transform: translateX(0);
+            opacity: 1;
           }
         }
 
         .slide-in-left-overlay {
-          animation: slideInFromRight 0.45s ease-out forwards;
+          animation: slideInFromRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
         .slide-out-overlay {
-          animation: slideOutToRight 0.45s ease-in forwards;
+          animation: slideOutToLeft 0.7s cubic-bezier(0.55, 0, 1, 0.45) forwards;
         }
 
         .overlay-layer {
