@@ -181,6 +181,17 @@
   height: 160px;
   margin-left: -55px;
   margin-top: -80px;
+}
+
+/* Smaller cards in opening mode */
+.bht11--opening .bht-carousel-stage {
+  height: 155px;
+}
+.bht11--opening .bht-carousel-card {
+  width: 90px;
+  height: 140px;
+  margin-left: -45px;
+  margin-top: -70px;
   transform-style: preserve-3d;
   will-change: transform, opacity;
   /* NO CSS transition — animation is handled by Web Animations API in JS */
