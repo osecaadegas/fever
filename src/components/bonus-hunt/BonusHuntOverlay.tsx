@@ -230,17 +230,18 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
   const bonusListRef = useRef<HTMLDivElement>(null);
   const scrollRaf = useRef<number>(0);
   const scrollOffset = useRef(0);
-  const scrollRunning = useRef(false);
 
+  // Start once on mount, never restart. Tick is a no-op when track doesn't exist (<3 items).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Start once when bonuses >= 3; never restart if already running
-    if (bonuses.length < 3 || scrollRunning.current) return;
-    scrollRunning.current = true;
     const speed = 30; // pixels per second
     let lastTime = 0;
     const tick = (now: number) => {
-      if (!scrollRunning.current) return;
-      if (!scrollTrackRef.current) { scrollRaf.current = requestAnimationFrame(tick); return; }
+      if (!scrollTrackRef.current) {
+        lastTime = 0; // reset so dt doesn't spike when track appears
+        scrollRaf.current = requestAnimationFrame(tick);
+        return;
+      }
       if (lastTime === 0) lastTime = now;
       const dt = (now - lastTime) / 1000;
       lastTime = now;
@@ -251,8 +252,8 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       scrollRaf.current = requestAnimationFrame(tick);
     };
     scrollRaf.current = requestAnimationFrame(tick);
-    return () => { scrollRunning.current = false; cancelAnimationFrame(scrollRaf.current); };
-  }, [bonuses.length]);
+    return () => { cancelAnimationFrame(scrollRaf.current); };
+  }, []);
 
   return (
     <div className="bht11" style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', width: '100%', height: '100%', overflow: 'hidden' }}>
