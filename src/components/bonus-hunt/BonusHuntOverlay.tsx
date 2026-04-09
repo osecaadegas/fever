@@ -433,14 +433,21 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
         { event: '*', schema: 'public', table: 'bonus_hunts' },
         (payload) => {
           if (payload.eventType === 'UPDATE' && currentHuntIdRef.current) {
-            const newRecord = payload.new as any;
-            const oldRecord = payload.old as any;
-            if (newRecord.id === currentHuntIdRef.current &&
-                newRecord.show_on_main_overlay !== oldRecord.show_on_main_overlay) {
-              loadActiveHunt();
+            const n = payload.new as any;
+            const o = payload.old as any;
+            if (n.id === currentHuntIdRef.current) {
+              // Only reload if overlay-relevant fields changed
+              const changed =
+                n.show_on_main_overlay !== o.show_on_main_overlay ||
+                n.status !== o.status ||
+                n.total_invested !== o.total_invested;
+              if (changed) {
+                setHunt(prev => prev ? { ...prev, ...n } : prev);
+              }
               return;
             }
           }
+          // INSERT / DELETE / different hunt → full reload
           loadActiveHunt();
         }
       )
