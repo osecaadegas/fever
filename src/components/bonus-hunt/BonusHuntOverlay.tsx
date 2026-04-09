@@ -483,7 +483,29 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
             return;
           }
 
-          // INSERT / DELETE → full reload
+          if (payload.eventType === 'INSERT' && n.hunt_id === currentHuntIdRef.current) {
+            // Add new item in order without refetching
+            setItems(prev => {
+              if (prev.some(it => it.id === n.id)) return prev;
+              const next = [...prev, n as BonusHuntItem];
+              next.sort((a, b) => a.order_index - b.order_index);
+              return next;
+            });
+            return;
+          }
+
+          if (payload.eventType === 'DELETE') {
+            const deletedId = o?.id;
+            if (deletedId) {
+              setItems(prev => {
+                const filtered = prev.filter(it => it.id !== deletedId);
+                return filtered.length === prev.length ? prev : filtered;
+              });
+              return;
+            }
+          }
+
+          // Fallback → full reload
           loadHuntItems(currentHuntIdRef.current);
         }
       )
