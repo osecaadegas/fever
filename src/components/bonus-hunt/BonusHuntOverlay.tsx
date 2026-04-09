@@ -218,38 +218,20 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
     if (idx >= 0) setActiveCardIndex(idx);
   }, [isOpeningMode, items]);
 
-  // Card stack position — circular distance drives 5 CSS positions
-  const getCardPosition = (bIdx: number): { style: React.CSSProperties; pos: string } => {
-    if (items.length === 0) return { style: { opacity: 0 }, pos: 'hidden' };
+  // Card position class — circular distance maps to CSS class, transition handles animation
+  const getPositionClass = (bIdx: number): string => {
+    if (items.length === 0) return 'bht-stack-card--hidden';
     const total = items.length;
     const rawDist = ((bIdx - activeCardIndex) % total + total) % total;
     const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
-    switch (dist) {
-      case 0: return {
-        pos: 'center',
-        style: { opacity: 1, zIndex: 5, transform: 'translateX(0) translateZ(20px) rotateY(0deg) scale(1)', filter: 'brightness(1) blur(0px)' },
-      };
-      case 1: return {
-        pos: 'right',
-        style: { opacity: 0.7, zIndex: 4, transform: 'translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85)', filter: 'brightness(0.7) blur(0px)' },
-      };
-      case -1: return {
-        pos: 'left',
-        style: { opacity: 0.7, zIndex: 4, transform: 'translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85)', filter: 'brightness(0.7) blur(0px)' },
-      };
-      case 2: return {
-        pos: 'far-right',
-        style: { opacity: 0.3, zIndex: 3, transform: 'translateX(170px) translateZ(-120px) rotateY(-35deg) scale(0.65)', filter: 'brightness(0.45) blur(1px)' },
-      };
-      case -2: return {
-        pos: 'far-left',
-        style: { opacity: 0.3, zIndex: 3, transform: 'translateX(-170px) translateZ(-120px) rotateY(35deg) scale(0.65)', filter: 'brightness(0.45) blur(1px)' },
-      };
-      default: return {
-        pos: 'hidden',
-        style: { opacity: 0, zIndex: 0, transform: 'translateX(0) translateZ(-200px) scale(0.4)', pointerEvents: 'none' as const },
-      };
-    }
+    const posMap: Record<string, string> = {
+      '-2': 'bht-stack-card--far-left',
+      '-1': 'bht-stack-card--left',
+      '0': 'bht-stack-card--center',
+      '1': 'bht-stack-card--right',
+      '2': 'bht-stack-card--far-right',
+    };
+    return posMap[String(dist)] || 'bht-stack-card--hidden';
   };
 
   const currentBonusIndex = isOpeningMode ? items.findIndex(item => item.status === 'pending') : -1;
@@ -329,35 +311,64 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
           border: 1px solid rgba(96,165,250,0.2);
         }
         .bht-stack-wrap {
+          display: flex;
+          justify-content: center;
+          align-items: center;
           position: relative;
           height: 210px;
           perspective: 1000px;
           perspective-origin: 50% 50%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          margin: 6px 0;
           overflow: visible;
-          margin: 0 12px;
         }
         .bht-stack-card {
           position: absolute;
           width: 120px;
           height: 190px;
-          border-radius: 12px;
-          overflow: hidden;
+          transition: transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
+                      opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
+                      filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
+                      z-index 0s 0.4s;
           transform-style: preserve-3d;
-          backface-visibility: hidden;
-          background: rgba(0,0,0,0.55);
-          border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-          transition:
-            transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
-            opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
-            filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+          will-change: transform, opacity, filter;
         }
-        .bht-stack-card--center-glow {
-          box-shadow: 0 0 16px rgba(74,222,128,0.35), 0 4px 20px rgba(0,0,0,0.5);
+        .bht-stack-card--hidden {
+          transform: translateX(0) translateZ(-200px) rotateY(0deg) scale(0.4);
+          z-index: -1; opacity: 0; pointer-events: none;
+          filter: brightness(0.3) blur(3px);
+        }
+        .bht-stack-card--far-left {
+          transform: translateX(-170px) translateZ(-120px) rotateY(35deg) scale(0.65);
+          z-index: 0; opacity: 0.3; filter: brightness(0.45) blur(1px);
+        }
+        .bht-stack-card--left {
+          transform: translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85);
+          z-index: 1; opacity: 0.7; filter: brightness(0.7);
+        }
+        .bht-stack-card--center {
+          transform: translateX(0) translateZ(20px) rotateY(0deg) scale(1);
+          z-index: 3; opacity: 1; filter: brightness(1);
+        }
+        .bht-stack-card--right {
+          transform: translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85);
+          z-index: 1; opacity: 0.7; filter: brightness(0.7);
+        }
+        .bht-stack-card--far-right {
+          transform: translateX(170px) translateZ(-120px) rotateY(-35deg) scale(0.65);
+          z-index: 0; opacity: 0.3; filter: brightness(0.45) blur(1px);
+        }
+        .bht-stack-card-inner {
+          width: 100%; height: 100%; border-radius: 12px; overflow: hidden;
+          background: rgba(0,0,0,0.55);
+          border: 1.5px solid rgba(255,255,255,0.1);
+          box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+        }
+        .bht-stack-card--center .bht-stack-card-inner {
+          box-shadow: 0 0 16px rgba(74,222,128,0.35), 0 6px 24px rgba(0,0,0,0.6);
           border-color: rgba(74,222,128,0.4);
+        }
+        .bht-stack-card-img-wrap {
+          width: 100%; height: 100%; overflow: hidden; position: relative;
         }
         .bht-stack-img {
           width: 100%;
@@ -395,18 +406,6 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
         .bht-stack-border--extreme {
           border: 2px solid var(--bht-extreme);
           box-shadow: 0 0 14px rgba(239,68,68,0.35);
-        }
-        @keyframes bhtFloatCenter {
-          0%, 100% { transform: translateX(0) translateZ(20px) rotateY(0deg) scale(1); }
-          50% { transform: translateX(0) translateZ(35px) rotateY(0deg) scale(1.04); }
-        }
-        @keyframes bhtTiltLeft {
-          0%, 100% { transform: translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85); }
-          50% { transform: translateX(-95px) translateZ(-50px) rotateY(24deg) scale(0.85); }
-        }
-        @keyframes bhtTiltRight {
-          0%, 100% { transform: translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85); }
-          50% { transform: translateX(95px) translateZ(-50px) rotateY(-24deg) scale(0.85); }
         }
         .bht-progress-track {
           height: 4px;
@@ -574,35 +573,24 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
           {/* 3D CARD STACK */}
           <div className="bht-stack-wrap" style={{ flexShrink: 0 }}>
             {items.map((item, i) => {
-              const { style, pos } = getCardPosition(i);
-              if (pos === 'hidden') return null;
+              const posCls = getPositionClass(i);
               const isOpened = item.status === 'opened';
-              const isCenter = pos === 'center';
-              const openingAnim = isOpeningMode && pos !== 'hidden'
-                ? pos === 'center' ? 'bhtFloatCenter 3s ease-in-out infinite'
-                : pos === 'left' ? 'bhtTiltLeft 4s ease-in-out infinite'
-                : pos === 'right' ? 'bhtTiltRight 4s ease-in-out infinite'
-                : undefined
-                : undefined;
               return (
-                <div
-                  key={item.id}
-                  className={`bht-stack-card${isCenter ? ' bht-stack-card--center-glow' : ''}`}
-                  style={{
-                    ...style,
-                    ...(openingAnim ? { animation: openingAnim, transition: 'none' } : {}),
-                  }}
-                >
-                  <img
-                    src={item.slot_image_url || '/image.png'}
-                    alt={item.slot_name}
-                    className="bht-stack-img"
-                    style={{ filter: isOpened ? 'brightness(0.45)' : 'none' }}
-                    onError={(e) => { e.currentTarget.src = '/image.png'; }}
-                  />
-                  <div className="bht-stack-name">{item.slot_name}</div>
-                  {item.is_super_bonus === true && <div className="bht-stack-border bht-stack-border--super" />}
-                  {item.is_extreme_bonus === true && <div className="bht-stack-border bht-stack-border--extreme" />}
+                <div key={item.id} className={`bht-stack-card ${posCls}`}>
+                  <div className="bht-stack-card-inner">
+                    <div className="bht-stack-card-img-wrap">
+                      <img
+                        src={item.slot_image_url || '/image.png'}
+                        alt={item.slot_name}
+                        className="bht-stack-img"
+                        style={{ filter: isOpened ? 'brightness(0.45)' : 'none' }}
+                        onError={(e) => { e.currentTarget.src = '/image.png'; }}
+                      />
+                      <div className="bht-stack-name">{item.slot_name}</div>
+                      {item.is_super_bonus === true && <div className="bht-stack-border bht-stack-border--super" />}
+                      {item.is_extreme_bonus === true && <div className="bht-stack-border bht-stack-border--extreme" />}
+                    </div>
+                  </div>
                 </div>
               );
             })}
