@@ -610,7 +610,22 @@ export function SlotDatabase() {
 
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity ${loading ? 'opacity-50' : 'opacity-100'}`}>
               {slots.map((slot) => (
-                <div key={slot.id} className="rounded-xl p-6 transition-all" style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #252525 100%)', border: '1px solid #3d3d3d' }}>
+                <div key={slot.id} className="rounded-xl overflow-hidden transition-all" style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #252525 100%)', border: '1px solid #3d3d3d' }}>
+                  <div className="relative w-full" style={{ height: '140px', background: '#1a1a1a' }}>
+                    {slot.image_url ? (
+                      <img
+                        src={slot.image_url}
+                        alt={slot.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a1a1a, #252525)' }}>
+                        <span className="text-3xl opacity-20">🎰</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="font-bold uppercase text-lg mb-1" style={{ color: '#d4d4d4' }}>{slot.name}</h3>
@@ -704,7 +719,8 @@ export function SlotDatabase() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
+                  </div>
+                  </div>
               ))}
             </div>
 
