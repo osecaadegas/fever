@@ -249,6 +249,27 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       const half = scrollTrackRef.current.scrollHeight / 2;
       if (half > 0 && scrollOffset.current >= half) scrollOffset.current -= half;
       scrollTrackRef.current.style.transform = `translateY(-${scrollOffset.current}px)`;
+
+      // JS-driven card animations (CSS animations don't work inside will-change:transform)
+      const cards = scrollTrackRef.current.querySelectorAll<HTMLElement>('.bht-cpt-card');
+      const t = now / 1000;
+      cards.forEach(card => {
+        if (card.classList.contains('bht-cpt-card--super')) {
+          // Calm pulse: oscillate box-shadow spread and border opacity
+          const p = (Math.sin(t * 2.1) + 1) / 2; // 0→1 over ~3s
+          const spread = 1 + p * 5;
+          const alpha = 0.2 + p * 0.35;
+          const bAlpha = 0.5 + p * 0.4;
+          card.style.boxShadow = `0 0 ${8 + p * 10}px ${spread}px rgba(234,179,8,${alpha}), inset 0 0 ${6 + p * 4}px ${p * 2}px rgba(234,179,8,${alpha * 0.3})`;
+          card.style.borderColor = `rgba(234,179,8,${bAlpha})`;
+        } else if (card.classList.contains('bht-cpt-card--extreme')) {
+          // Vibrate: rapid micro-translations
+          const vx = Math.sin(t * 60) * 0.5;
+          const vy = Math.cos(t * 73) * 0.4;
+          card.style.transform = `translate(${vx}px, ${vy}px)`;
+        }
+      });
+
       scrollRaf.current = requestAnimationFrame(tick);
     };
     scrollRaf.current = requestAnimationFrame(tick);
@@ -348,10 +369,6 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
 
       {/* ═══ 5. Bonus List Section ═══ */}
       <div className="bht11-list-section">
-        <div className="bht11-list-title">
-          <span className="bht11-list-title-icon">📋</span>
-          <span>BONUS LIST</span>
-        </div>
         <div className="bht-bonus-list" ref={bonusListRef}>
           {(() => {
             const renderCompactCard = (bonus: Bonus, idx: number, key: string | number) => {

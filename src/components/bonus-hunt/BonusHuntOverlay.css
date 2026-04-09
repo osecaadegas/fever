@@ -346,7 +346,7 @@
 .bht-compact-track {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   will-change: transform;
 }
 
@@ -370,23 +370,11 @@
   border: 1.5px solid rgba(234,179,8,0.7);
   box-shadow: 0 0 8px 1px rgba(234,179,8,0.25), inset 0 0 6px rgba(234,179,8,0.08);
   position: relative;
-  animation: bht-super-pulse 3s ease-in-out infinite;
-}
-@keyframes bht-super-pulse {
-  0%, 100% { box-shadow: 0 0 8px 1px rgba(234,179,8,0.2), inset 0 0 6px rgba(234,179,8,0.06); border-color: rgba(234,179,8,0.5); }
-  50%      { box-shadow: 0 0 18px 5px rgba(234,179,8,0.5), inset 0 0 10px 2px rgba(234,179,8,0.15); border-color: rgba(234,179,8,0.9); }
 }
 .bht-cpt-card--extreme {
   border: 1.5px solid rgba(220,38,38,0.8);
   box-shadow: 0 0 10px 2px rgba(220,38,38,0.35), inset 0 0 6px rgba(220,38,38,0.1);
   position: relative;
-  animation: bht-extreme-vibrate 0.12s linear infinite alternate;
-}
-@keyframes bht-extreme-vibrate {
-  0%   { transform: translate(-0.5px, 0.3px); }
-  33%  { transform: translate(0.4px, -0.2px); }
-  66%  { transform: translate(-0.3px, -0.3px); }
-  100% { transform: translate(0.5px, 0.2px); }
 }
 
 /* Full-bleed background image */
