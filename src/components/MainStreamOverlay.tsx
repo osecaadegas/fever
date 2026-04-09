@@ -48,7 +48,16 @@ export function MainStreamOverlay() {
       .eq('type', type)
       .maybeSingle();
 
-    if (existing) return existing;
+    if (existing) {
+      if (!existing.is_active) {
+        await supabase
+          .from('overlays')
+          .update({ is_active: true })
+          .eq('id', existing.id);
+        existing.is_active = true;
+      }
+      return existing;
+    }
 
     const { data: created } = await supabase
       .from('overlays')

@@ -179,7 +179,7 @@ export function Dashboard() {
               type,
               name,
               config: {},
-              is_active: type === 'chill'
+              is_active: true
             });
         }
       }

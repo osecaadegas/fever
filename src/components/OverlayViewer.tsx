@@ -307,7 +307,8 @@ export function OverlayViewer({ overlayId }: OverlayViewerProps) {
     );
   }
 
-  if (!overlay.is_active && overlay.type !== 'main_stream') {
+  const alwaysActiveTypes = ['main_stream', 'bar', 'chat', 'alerts'];
+  if (!overlay.is_active && !alwaysActiveTypes.includes(overlay.type)) {
     return (
       <div className="min-h-screen bg-transparent"></div>
     );
