@@ -249,31 +249,40 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       const half = scrollTrackRef.current.scrollHeight / 2;
       if (half > 0 && scrollOffset.current >= half) scrollOffset.current -= half;
       scrollTrackRef.current.style.transform = `translateY(-${scrollOffset.current}px)`;
-
-      // JS-driven card animations (CSS animations don't work inside will-change:transform)
-      const cards = scrollTrackRef.current.querySelectorAll<HTMLElement>('.bht-cpt-card');
-      const t = now / 1000;
-      cards.forEach(card => {
-        if (card.classList.contains('bht-cpt-card--super')) {
-          // Calm pulse: oscillate box-shadow spread and border opacity
-          const p = (Math.sin(t * 2.1) + 1) / 2; // 0→1 over ~3s
-          const spread = 1 + p * 5;
-          const alpha = 0.2 + p * 0.35;
-          const bAlpha = 0.5 + p * 0.4;
-          card.style.boxShadow = `0 0 ${8 + p * 10}px ${spread}px rgba(234,179,8,${alpha}), inset 0 0 ${6 + p * 4}px ${p * 2}px rgba(234,179,8,${alpha * 0.3})`;
-          card.style.borderColor = `rgba(234,179,8,${bAlpha})`;
-        } else if (card.classList.contains('bht-cpt-card--extreme')) {
-          // Vibrate: rapid micro-translations
-          const vx = Math.sin(t * 60) * 0.5;
-          const vy = Math.cos(t * 73) * 0.4;
-          card.style.transform = `translate(${vx}px, ${vy}px)`;
-        }
-      });
-
       scrollRaf.current = requestAnimationFrame(tick);
     };
     scrollRaf.current = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(scrollRaf.current); };
+  }, []);
+
+  // Separate rAF for card glow/vibrate – queries from bonusListRef (always mounted)
+  // so it works regardless of scroll track state or number of items.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let raf = 0;
+    const animate = (now: number) => {
+      const root = bonusListRef.current;
+      if (root) {
+        const t = now / 1000;
+        root.querySelectorAll<HTMLElement>('.bht-cpt-card--super').forEach(card => {
+          const p = (Math.sin(t * 2.1) + 1) / 2; // 0→1 smoothly ~3s cycle
+          const spread = 2 + p * 8;
+          const blur = 8 + p * 14;
+          const a = 0.25 + p * 0.45;
+          const bA = 0.5 + p * 0.5;
+          card.style.boxShadow = `0 0 ${blur}px ${spread}px rgba(234,179,8,${a}), inset 0 0 ${8 + p * 6}px ${1 + p * 3}px rgba(234,179,8,${a * 0.35})`;
+          card.style.borderColor = `rgba(234,179,8,${bA})`;
+        });
+        root.querySelectorAll<HTMLElement>('.bht-cpt-card--extreme').forEach(card => {
+          const vx = Math.sin(t * 55) * 1.2;
+          const vy = Math.cos(t * 67) * 0.9;
+          card.style.transform = `translate(${vx}px, ${vy}px)`;
+        });
+      }
+      raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   return (
