@@ -611,7 +611,7 @@ export function SlotDatabase() {
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity ${loading ? 'opacity-50' : 'opacity-100'}`}>
               {slots.map((slot) => (
                 <div key={slot.id} className="rounded-xl overflow-hidden transition-all" style={{ background: 'linear-gradient(135deg, #2d2d2d 0%, #252525 100%)', border: '1px solid #3d3d3d' }}>
-                  <div className="relative w-full" style={{ height: '140px', background: '#1a1a1a' }}>
+                  <div className="relative w-full" style={{ height: '180px', background: '#1a1a1a' }}>
                     {slot.image_url ? (
                       <img
                         src={slot.image_url}
@@ -624,99 +624,44 @@ export function SlotDatabase() {
                         <span className="text-3xl opacity-20">🎰</span>
                       </div>
                     )}
-                  </div>
-                  <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold uppercase text-lg mb-1" style={{ color: '#d4d4d4' }}>{slot.name}</h3>
-                      <p className="text-sm uppercase" style={{ color: '#8a8a8a' }}>{slot.provider}</p>
-                    </div>
                     <button
                       onClick={() => handleToggleFavorite(slot.id, slot.is_favorite || false)}
-                      className="p-2 rounded-lg transition-colors"
+                      className="absolute top-2 right-2 p-1.5 rounded-md transition-colors"
                       style={{
                         color: slot.is_favorite ? '#b89968' : '#8a8a8a',
-                        background: slot.is_favorite ? 'rgba(139, 116, 96, 0.2)' : 'transparent'
+                        background: 'rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(4px)'
                       }}
                     >
-                      <Star className="w-5 h-5" fill={slot.is_favorite ? 'currentColor' : 'none'} />
+                      <Star className="w-4 h-4" fill={slot.is_favorite ? 'currentColor' : 'none'} />
                     </button>
                   </div>
+                  <div className="px-4 py-3">
+                  <h3 className="font-bold uppercase text-sm mb-0.5" style={{ color: '#d4d4d4' }}>{slot.name}</h3>
+                  <p className="text-xs uppercase mb-2" style={{ color: '#8a8a8a' }}>{slot.provider}</p>
 
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(139, 116, 96, 0.1)', border: '1px solid rgba(139, 116, 96, 0.2)' }}>
-                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                        <Award className="w-4 h-4" style={{ color: '#b89968' }} />
-                        <span className="text-xs font-semibold uppercase" style={{ color: '#b89968' }}>Max Win</span>
-                      </div>
-                      <p className="text-base font-bold" style={{ color: '#d4d4d4' }}>{slot.max_win}x</p>
-                    </div>
-
-                    <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(139, 116, 96, 0.1)', border: '1px solid rgba(139, 116, 96, 0.2)' }}>
-                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                        <Zap className="w-4 h-4" style={{ color: '#b89968' }} />
-                        <span className="text-xs font-semibold uppercase" style={{ color: '#b89968' }}>Volatilidade</span>
-                      </div>
-                      <p className="text-base font-bold" style={{ color: '#d4d4d4' }}>{slot.volatility}</p>
-                    </div>
-
-                    <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(139, 116, 96, 0.1)', border: '1px solid rgba(139, 116, 96, 0.2)' }}>
-                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                        <TrendingUp className="w-4 h-4" style={{ color: '#b89968' }} />
-                        <span className="text-xs font-semibold uppercase" style={{ color: '#b89968' }}>RTP</span>
-                      </div>
-                      <p className="text-base font-bold" style={{ color: '#d4d4d4' }}>{slot.rtp}%</p>
-                    </div>
-
-                    <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(139, 116, 96, 0.1)', border: '1px solid rgba(139, 116, 96, 0.2)' }}>
-                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                        <DollarSign className="w-4 h-4" style={{ color: '#b89968' }} />
-                        <span className="text-xs font-semibold uppercase" style={{ color: '#b89968' }}>Bet Range</span>
-                      </div>
-                      <p className="text-base font-bold" style={{ color: '#d4d4d4' }}>${slot.min_bet}-${slot.max_bet}</p>
-                    </div>
+                  <div className="flex flex-wrap gap-1.5 mb-3 text-xs">
+                    <span className="px-2 py-0.5 rounded" style={{ background: 'rgba(139,116,96,0.12)', color: '#b89968', border: '1px solid rgba(139,116,96,0.2)' }}>{slot.max_win}x</span>
+                    <span className="px-2 py-0.5 rounded" style={{ background: 'rgba(139,116,96,0.12)', color: '#b89968', border: '1px solid rgba(139,116,96,0.2)' }}>{slot.volatility}</span>
+                    <span className="px-2 py-0.5 rounded" style={{ background: 'rgba(139,116,96,0.12)', color: '#b89968', border: '1px solid rgba(139,116,96,0.2)' }}>{slot.rtp}%</span>
+                    <span className="px-2 py-0.5 rounded" style={{ background: 'rgba(139,116,96,0.12)', color: '#b89968', border: '1px solid rgba(139,116,96,0.2)' }}>${slot.min_bet}-${slot.max_bet}</span>
                   </div>
-
-                  {slot.stats && (
-                    <div className="rounded-lg p-4 mb-4" style={{ background: '#1a1a1a', border: '1px solid #2d2d2d' }}>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="text-center">
-                          <span className="uppercase block" style={{ color: '#8a8a8a' }}>Sessions</span>
-                          <span className="font-bold" style={{ color: '#d4d4d4' }}>{slot.stats.total_sessions}</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="uppercase block" style={{ color: '#8a8a8a' }}>Best Win</span>
-                          <span className="font-bold" style={{ color: '#b89968' }}>{slot.stats.best_win_multi}x</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="uppercase block" style={{ color: '#8a8a8a' }}>Bonus Buys</span>
-                          <span className="font-bold" style={{ color: '#d4d4d4' }}>{slot.stats.total_bonus_buys}</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="uppercase block" style={{ color: '#8a8a8a' }}>Profit/Loss</span>
-                          <span className="font-bold" style={{ color: slot.stats.profit_loss >= 0 ? '#10b981' : '#ef4444' }}>
-                            {slot.stats.profit_loss >= 0 ? '+' : ''}{slot.stats.profit_loss.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingSlot(slot)}
-                      className="flex-1 px-4 py-2.5 rounded-lg font-semibold uppercase text-xs flex items-center justify-center gap-1.5 transition-all"
+                      className="flex-1 px-3 py-1.5 rounded-lg font-semibold uppercase text-xs flex items-center justify-center gap-1 transition-all"
                       style={{ background: '#1a1a1a', color: '#d4d4d4', border: '1px solid #3d3d3d' }}
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-3.5 h-3.5" />
                       Editar
                     </button>
                     <button
                       onClick={() => handleDeleteSlot(slot.id)}
-                      className="px-4 py-2.5 rounded-lg font-semibold uppercase text-xs flex items-center justify-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-lg font-semibold uppercase text-xs flex items-center justify-center gap-1 transition-all"
                       style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   </div>
