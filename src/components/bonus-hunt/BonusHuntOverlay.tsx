@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import './BonusHuntOverlay.css';
 
@@ -89,35 +89,95 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
     return { totalBetAll, totalWin, superCount, extremeCount, breakEven, liveBE, openedCount: openedBonuses.length };
   }, [bonuses, startMoney, stopLoss]);
 
-  /* ── Carousel positions ── */
-  const posStyles: Record<string, React.CSSProperties> = {
-    '-2': { transform: 'translateX(-170px) translateZ(-120px) rotateY(35deg) scale(0.65)', zIndex: 0, opacity: 0.3, filter: 'brightness(0.45) blur(1px)' },
-    '-1': { transform: 'translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85)', zIndex: 1, opacity: 0.7, filter: 'brightness(0.7)' },
-    '0':  { transform: 'translateX(0) translateZ(20px) rotateY(0deg) scale(1)', zIndex: 3, opacity: 1, filter: 'brightness(1)' },
-    '1':  { transform: 'translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85)', zIndex: 1, opacity: 0.7, filter: 'brightness(0.7)' },
-    '2':  { transform: 'translateX(170px) translateZ(-120px) rotateY(-35deg) scale(0.65)', zIndex: 0, opacity: 0.3, filter: 'brightness(0.45) blur(1px)' },
+  /* ══════════════════════════════════════════════════════
+     3D Carousel — 100% imperative DOM, React never touches positions
+     ══════════════════════════════════════════════════════ */
+  const stageRef = useRef<HTMLDivElement>(null);
+  const centerRef = useRef(0);          // which bIdx is centered
+  const mountedRef = useRef(false);     // skip transition on first paint
+
+  // Position presets: [translateX, translateZ, rotateY, scale, opacity, blur]
+  const SLOTS: Record<number, [number, number, number, number, number, number]> = {
+    [-2]: [-170, -120, 35, 0.65, 0.3, 1],
+    [-1]: [-95,  -50,  20, 0.85, 0.7, 0],
+    [0]:  [0,     20,   0, 1,    1,   0],
+    [1]:  [95,   -50, -20, 0.85, 0.7, 0],
+    [2]:  [170, -120, -35, 0.65, 0.3, 1],
   };
-  /* Directional hidden positions — cards exit/enter from the correct side */
-  const hiddenLeft: React.CSSProperties = { transform: 'translateX(-260px) translateZ(-200px) rotateY(45deg) scale(0.4)', zIndex: -1, opacity: 0, filter: 'brightness(0.3) blur(3px)', pointerEvents: 'none' };
-  const hiddenRight: React.CSSProperties = { transform: 'translateX(260px) translateZ(-200px) rotateY(-45deg) scale(0.4)', zIndex: -1, opacity: 0, filter: 'brightness(0.3) blur(3px)', pointerEvents: 'none' };
 
-  const getPos = (dist: number): React.CSSProperties => {
-    if (posStyles[String(dist)]) return posStyles[String(dist)];
-    return dist < 0 ? hiddenLeft : hiddenRight;
-  };
+  const applySlot = useCallback((card: HTMLElement, dist: number) => {
+    const slot = SLOTS[dist];
+    if (slot) {
+      const [tx, tz, ry, sc, op, bl] = slot;
+      card.style.transform = `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
+      card.style.opacity = String(op);
+      card.style.filter = bl > 0 ? `brightness(0.45) blur(${bl}px)` : 'brightness(1)';
+      card.style.zIndex = dist === 0 ? '3' : Math.abs(dist) === 1 ? '1' : '0';
+      card.style.pointerEvents = '';
+    } else {
+      // Hidden — exit in the direction it was heading
+      const exitX = dist < 0 ? -260 : 260;
+      const exitRY = dist < 0 ? 50 : -50;
+      card.style.transform = `translateX(${exitX}px) translateZ(-200px) rotateY(${exitRY}deg) scale(0.4)`;
+      card.style.opacity = '0';
+      card.style.filter = 'brightness(0.3) blur(3px)';
+      card.style.zIndex = '-1';
+      card.style.pointerEvents = 'none';
+    }
+  }, []);
 
-  /* ── React state carousel — same approach as working main project ── */
-  const [carouselIdx, setCarouselIdx] = useState(0);
+  const paintCarousel = useCallback((ci: number) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const cards = stage.children;
+    const total = cards.length;
+    if (total === 0) return;
 
+    // Enable transitions after first paint
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+    } else {
+      for (let i = 0; i < total; i++) {
+        const el = cards[i] as HTMLElement;
+        if (!el.style.transition) {
+          el.style.transition = 'transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94)';
+        }
+      }
+    }
+
+    for (let i = 0; i < total; i++) {
+      const rawDist = ((i - ci) % total + total) % total;
+      const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
+      applySlot(cards[i] as HTMLElement, dist);
+    }
+  }, [applySlot]);
+
+  // Auto-rotate timer
   useEffect(() => {
     if (bonuses.length < 2 || isOpening) return;
-    const id = setInterval(() => setCarouselIdx(i => (i + 1) % bonuses.length), 2500);
+    const id = setInterval(() => {
+      centerRef.current = (centerRef.current + 1) % bonuses.length;
+      paintCarousel(centerRef.current);
+    }, 2500);
     return () => clearInterval(id);
-  }, [bonuses.length, isOpening]);
+  }, [bonuses.length, isOpening, paintCarousel]);
 
+  // Snap to currentIndex during opening
   useEffect(() => {
-    if (isOpening && currentIndex >= 0) setCarouselIdx(currentIndex);
-  }, [isOpening, currentIndex]);
+    if (isOpening && currentIndex >= 0) {
+      centerRef.current = currentIndex;
+      paintCarousel(currentIndex);
+    }
+  }, [isOpening, currentIndex, paintCarousel]);
+
+  // Initial paint (no transition)
+  useEffect(() => {
+    mountedRef.current = false;
+    requestAnimationFrame(() => {
+      const ci = isOpening && currentIndex >= 0 ? currentIndex : centerRef.current;
+      paintCarousel(ci);
+    });
+  }, [bonuses.length]); // only re-run when card count changes
 
   return (
     <div className="bht11" style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -178,36 +238,21 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       {/* ═══ 4. 3D Rotating Card Stack ═══ */}
       {bonuses.length > 0 && (
         <div className="bht11-stack-section">
-          <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            position: 'relative' as const, height: 210, perspective: 1000,
-            perspectiveOrigin: '50% 50%', margin: '6px 0', overflow: 'visible',
-          }}>
-            {bonuses.map((bonus, bIdx) => {
-              const total = bonuses.length;
-              const rawDist = ((bIdx - carouselIdx) % total + total) % total;
-              const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
-              const pos = getPos(dist);
-              return (
-                <div key={bonus.id || `stk-${bonus.slotName}-${bIdx}`}
-                  style={{
-                    position: 'absolute' as const, width: 120, height: 190,
-                    transition: 'transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94)',
-                    transformStyle: 'preserve-3d', willChange: 'transform, opacity, filter',
-                    ...pos,
-                  }}
-                  className={`bht-stack-card${bonus.opened ? ' bht-stack-card--opened' : ''}${bonus.isSuperBonus ? ' bht-stack-card--super' : ''}${(bonus.isExtremeBonus || bonus.isExtreme) ? ' bht-stack-card--extreme' : ''}`}>
-                  <div className="bht-stack-card-inner">
-                    <div className="bht-stack-card-img-wrap">
-                      {bonus.slot?.image ? (
-                        <img src={bonus.slot.image} alt={bonus.slotName} className="bht-stack-card-img"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : <div className="bht-stack-card-img-ph" />}
-                    </div>
+          <div className="bht-carousel-stage" ref={stageRef}>
+            {bonuses.map((bonus, bIdx) => (
+              <div key={bonus.id || `card-${bonus.slotName}-${bIdx}`}
+                className="bht-carousel-card">
+                <div className="bht-stack-card-inner">
+                  <div className="bht-stack-card-img-wrap">
+                    {bonus.slot?.image ? (
+                      <img src={bonus.slot.image} alt={bonus.slotName} className="bht-stack-card-img"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : <div className="bht-stack-card-img-ph" />}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
+          </div>
           </div>
           {(() => {
             const total = bonuses.length;
