@@ -253,6 +253,24 @@
   filter: brightness(0.45) blur(1px);
 }
 
+/* Exit left — fully invisible, continues leftward motion for smooth directional exit */
+.bht-stack-card--exit-left {
+  transform: translateX(-220px) translateZ(-200px) rotateY(45deg) scale(0.4);
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  filter: brightness(0.2) blur(4px);
+}
+
+/* Exit right — fully invisible, continues rightward motion for smooth directional entry */
+.bht-stack-card--exit-right {
+  transform: translateX(220px) translateZ(-200px) rotateY(-45deg) scale(0.4);
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  filter: brightness(0.2) blur(4px);
+}
+
 /* Center card float animation during opening */
 .bht-stack:not(.bht-stack--spinning) .bht-stack-card--center {
   animation: bht-stack-float 3s ease-in-out infinite;
@@ -403,6 +421,11 @@
   white-space: nowrap;
 }
 
+/* ── Stack section — must not shrink ── */
+.bht11-stack-section {
+  flex-shrink: 0;
+}
+
 /* ── 5. Bonus List Section ── */
 .bht11-list-section {
   flex: 1 1 0;
@@ -448,7 +471,7 @@
   100% { transform: translateY(-50%); }
 }
 .bht-compact-track--scroll {
-  animation: bht-compact-scroll calc(var(--bht-compact-count, 5) * 5s) linear infinite;
+  animation: bht-compact-scroll calc(var(--bht-compact-count, 5) * 3s) linear infinite;
 }
 
 /* ── Compact bonus cards ── */
