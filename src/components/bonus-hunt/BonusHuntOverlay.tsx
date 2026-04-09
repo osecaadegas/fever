@@ -60,8 +60,44 @@ interface BonusHuntConfig {
 }
 
 /* ═══════════════════════════════════════════════════════
+   Inline position styles — completely immune to CSS
+   ═══════════════════════════════════════════════════════ */
+const STACK_STYLE: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  position: 'relative',
+  height: 210,
+  perspective: 1000,
+  perspectiveOrigin: '50% 50%',
+  margin: '6px 0',
+  overflow: 'visible',
+};
+
+const CARD_BASE: React.CSSProperties = {
+  position: 'absolute',
+  width: 120,
+  height: 190,
+  transition: 'transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94)',
+  transformStyle: 'preserve-3d',
+  willChange: 'transform, opacity, filter',
+};
+
+const POS: Record<string, React.CSSProperties> = {
+  '-2': { transform: 'translateX(-170px) translateZ(-120px) rotateY(35deg) scale(0.65)', zIndex: 0, opacity: 0.3, filter: 'brightness(0.45) blur(1px)' },
+  '-1': { transform: 'translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85)', zIndex: 1, opacity: 0.7, filter: 'brightness(0.7)' },
+  '0':  { transform: 'translateX(0) translateZ(20px) rotateY(0deg) scale(1)', zIndex: 3, opacity: 1, filter: 'brightness(1)' },
+  '1':  { transform: 'translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85)', zIndex: 1, opacity: 0.7, filter: 'brightness(0.7)' },
+  '2':  { transform: 'translateX(170px) translateZ(-120px) rotateY(-35deg) scale(0.65)', zIndex: 0, opacity: 0.3, filter: 'brightness(0.45) blur(1px)' },
+};
+
+const POS_HIDDEN: React.CSSProperties = {
+  transform: 'translateX(0) translateZ(-200px) rotateY(0deg) scale(0.4)',
+  zIndex: -1, opacity: 0, filter: 'brightness(0.3) blur(3px)', pointerEvents: 'none',
+};
+
+/* ═══════════════════════════════════════════════════════
    V11 "Fever" Bonus Hunt Widget
-   EXACT COPY from working BonusHuntWidgetV11.jsx
    ═══════════════════════════════════════════════════════ */
 function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
   const c = config || {};
@@ -157,19 +193,21 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
       {/* ═══ 4. 3D Rotating Card Stack ═══ */}
       {bonuses.length > 0 && (
         <div className="bht11-stack-section">
-          <div className={`bht-stack${!isOpening ? ' bht-stack--spinning' : ''}`}>
+          <div style={STACK_STYLE}>
             {(() => {
               const total = bonuses.length;
               if (total === 0) return null;
               const ci = isOpening && currentIndex >= 0 ? currentIndex : carouselIdx % total;
-              const posMap: Record<string, string> = { '-2': 'bht-stack-card--far-left', '-1': 'bht-stack-card--left', '0': 'bht-stack-card--center', '1': 'bht-stack-card--right', '2': 'bht-stack-card--far-right' };
               return bonuses.map((bonus, bIdx) => {
                 const rawDist = ((bIdx - ci) % total + total) % total;
                 const dist = rawDist <= Math.floor(total / 2) ? rawDist : rawDist - total;
-                const posCls = posMap[String(dist)] || 'bht-stack-card--hidden';
+                const pos = POS[String(dist)] || POS_HIDDEN;
+                const style: React.CSSProperties = { ...CARD_BASE, ...pos };
+                if (bonus.opened && dist !== 0) style.opacity = 0.5;
                 return (
                   <div key={`stk-${bIdx}`}
-                    className={`bht-stack-card ${posCls}${bonus.opened ? ' bht-stack-card--opened' : ''}${bonus.isSuperBonus ? ' bht-stack-card--super' : ''}${(bonus.isExtremeBonus || bonus.isExtreme) ? ' bht-stack-card--extreme' : ''}`}>
+                    style={style}
+                    className={`bht-stack-card${bonus.opened ? ' bht-stack-card--opened' : ''}${bonus.isSuperBonus ? ' bht-stack-card--super' : ''}${(bonus.isExtremeBonus || bonus.isExtreme) ? ' bht-stack-card--extreme' : ''}`}>
                     <div className="bht-stack-card-inner">
                       <div className="bht-stack-card-img-wrap">
                         {bonus.slot?.image ? (

@@ -159,148 +159,10 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   4. 3D ANIMATED CARD CAROUSEL
+   4. 3D CARD CAROUSEL — positions are 100% inline, CSS is visual only
    ════════════════════════════════════════════════════════════════ */
-.bht-stack {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  position: relative !important;
-  height: 210px !important;
-  perspective: 1000px !important;
-  perspective-origin: 50% 50% !important;
-  margin: 6px 0;
-  overflow: visible !important;
-}
 
-.bht-stack-card {
-  position: absolute !important;
-  width: 120px !important;
-  height: 190px !important;
-  transition: transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
-              opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
-              filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
-              z-index 0s 0.4s !important;
-  transform-style: preserve-3d !important;
-  will-change: transform, opacity, filter !important;
-}
-
-.bht-stack-card--hidden {
-  transform: translateX(0) translateZ(-200px) rotateY(0deg) scale(0.4) !important;
-  z-index: -1 !important;
-  opacity: 0 !important;
-  pointer-events: none;
-  filter: brightness(0.3) blur(3px) !important;
-}
-
-.bht-stack-card--far-left {
-  transform: translateX(-170px) translateZ(-120px) rotateY(35deg) scale(0.65) !important;
-  z-index: 0 !important;
-  opacity: 0.3 !important;
-  filter: brightness(0.45) blur(1px) !important;
-}
-
-.bht-stack-card--left {
-  transform: translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85) !important;
-  z-index: 1 !important;
-  opacity: 0.7 !important;
-  filter: brightness(0.7) !important;
-}
-
-.bht-stack-card--center {
-  transform: translateX(0) translateZ(20px) rotateY(0deg) scale(1) !important;
-  z-index: 3 !important;
-  opacity: 1 !important;
-  filter: brightness(1) !important;
-}
-
-.bht-stack-card--right {
-  transform: translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85) !important;
-  z-index: 1 !important;
-  opacity: 0.7 !important;
-  filter: brightness(0.7) !important;
-}
-
-.bht-stack-card--far-right {
-  transform: translateX(170px) translateZ(-120px) rotateY(-35deg) scale(0.65) !important;
-  z-index: 0 !important;
-  opacity: 0.3 !important;
-  filter: brightness(0.45) blur(1px) !important;
-}
-
-/* Center card float animation during opening */
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--center {
-  animation: bht-stack-float 3s ease-in-out infinite !important;
-}
-@keyframes bht-stack-float {
-  0%, 100% { transform: translateX(0) translateZ(20px) rotateY(0deg) scale(1); }
-  50%      { transform: translateX(0) translateZ(35px) rotateY(0deg) scale(1.04); }
-}
-
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--left {
-  animation: bht-stack-tilt-left 4s ease-in-out infinite !important;
-}
-@keyframes bht-stack-tilt-left {
-  0%, 100% { transform: translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85); }
-  50%      { transform: translateX(-95px) translateZ(-40px) rotateY(24deg) scale(0.87); }
-}
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--right {
-  animation: bht-stack-tilt-right 4s ease-in-out infinite !important;
-}
-@keyframes bht-stack-tilt-right {
-  0%, 100% { transform: translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85); }
-  50%      { transform: translateX(95px) translateZ(-40px) rotateY(-24deg) scale(0.87); }
-}
-
-.bht-stack-card--opened { opacity: 0.5 !important; }
-.bht-stack-card--center.bht-stack-card--opened { opacity: 1 !important; }
-
-.bht-stack-card--super {
-  filter: drop-shadow(0 0 10px rgba(234,179,8,0.5)) !important;
-}
-.bht-stack-card--extreme {
-  filter: drop-shadow(0 0 12px rgba(220,38,38,0.55)) !important;
-}
-.bht-stack-card--left.bht-stack-card--super,
-.bht-stack-card--right.bht-stack-card--super {
-  filter: brightness(0.7) drop-shadow(0 0 10px rgba(234,179,8,0.5)) !important;
-}
-.bht-stack-card--left.bht-stack-card--extreme,
-.bht-stack-card--right.bht-stack-card--extreme {
-  filter: brightness(0.7) drop-shadow(0 0 12px rgba(220,38,38,0.55)) !important;
-}
-
-/* Extreme card "hiding behind other cards" 3D animation */
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--center.bht-stack-card--extreme {
-  animation: bht-extreme-hide-center 4s ease-in-out infinite !important;
-}
-@keyframes bht-extreme-hide-center {
-  0%, 100% { transform: translateX(0) translateZ(20px) rotateY(0deg) scale(1); }
-  20%      { transform: translateX(12px) translateZ(-20px) rotateY(-10deg) scale(0.88); }
-  40%      { transform: translateX(18px) translateZ(-50px) rotateY(-18deg) scale(0.78); }
-  55%      { transform: translateX(14px) translateZ(-40px) rotateY(-14deg) scale(0.82); }
-  75%      { transform: translateX(4px) translateZ(-5px) rotateY(-3deg) scale(0.95); }
-}
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--left.bht-stack-card--extreme {
-  animation: bht-extreme-hide-left 4.5s ease-in-out infinite !important;
-}
-@keyframes bht-extreme-hide-left {
-  0%, 100% { transform: translateX(-95px) translateZ(-50px) rotateY(20deg) scale(0.85); }
-  25%      { transform: translateX(-65px) translateZ(-85px) rotateY(32deg) scale(0.72); }
-  45%      { transform: translateX(-55px) translateZ(-100px) rotateY(38deg) scale(0.66); }
-  65%      { transform: translateX(-72px) translateZ(-70px) rotateY(26deg) scale(0.78); }
-}
-.bht-stack:not(.bht-stack--spinning) .bht-stack-card--right.bht-stack-card--extreme {
-  animation: bht-extreme-hide-right 4.5s ease-in-out infinite !important;
-}
-@keyframes bht-extreme-hide-right {
-  0%, 100% { transform: translateX(95px) translateZ(-50px) rotateY(-20deg) scale(0.85); }
-  25%      { transform: translateX(65px) translateZ(-85px) rotateY(-32deg) scale(0.72); }
-  45%      { transform: translateX(55px) translateZ(-100px) rotateY(-38deg) scale(0.66); }
-  65%      { transform: translateX(72px) translateZ(-70px) rotateY(-26deg) scale(0.78); }
-}
-
-/* ── Card inner structure ── */
+/* Card inner structure */
 .bht-stack-card-inner {
   width: 100%;
   height: 100%;
@@ -313,13 +175,6 @@
   box-shadow:
     0 6px 24px rgba(0,0,0,0.6),
     0 1px 0 rgba(255,255,255,0.06) inset;
-}
-.bht-stack-card--center .bht-stack-card-inner {
-  border-color: #86efac;
-  box-shadow:
-    0 8px 32px rgba(0,0,0,0.7),
-    0 0 20px 3px rgba(134,239,172,0.2),
-    0 1px 0 rgba(255,255,255,0.1) inset;
 }
 .bht-stack-card--super .bht-stack-card-inner {
   border-color: rgba(234,179,8,0.6);
