@@ -356,7 +356,6 @@
   flex-shrink: 0;
   height: 82px;
   border-radius: 12px;
-  overflow: hidden;
   border: 1px solid rgba(96,165,250,0.15);
 }
 .bht-cpt-card--active {
@@ -416,6 +415,8 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+  border-radius: 12px;
 }
 .bht-cpt-card-img {
   width: 100%;
@@ -445,6 +446,8 @@
   background: linear-gradient(90deg, rgba(6,10,32,0.95) 0%, rgba(6,10,32,0.82) 40%, rgba(6,10,32,0.3) 65%, transparent 100%);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  overflow: hidden;
+  border-radius: 12px;
 }
 .bht-cpt-card-row1 {
   display: flex;
