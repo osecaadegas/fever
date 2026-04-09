@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Gift, TrendingUp, TrendingDown, DollarSign, Zap, Flame, Target } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { BonusOpeningOverlay } from './BonusOpeningOverlay';
-import { Carousel3D, type Carousel3DItem } from './Carousel3D';
 
 interface BonusHunt {
   id: string;
@@ -43,6 +40,7 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
   const [items, setItems] = useState<BonusHuntItem[]>([]);
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [removedItemIds, setRemovedItemIds] = useState<Set<string>>(new Set());
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
   const previousItemIdsRef = useRef<Set<string>>(new Set());
   const currentHuntIdRef = useRef<string | null>(null);
 
@@ -190,400 +188,458 @@ export function BonusHuntOverlay({ huntId, embedded = false }: BonusHuntOverlayP
   const hasHunt = !!hunt;
   const isOpeningMode = hunt?.status === 'opening';
 
-  if (isOpeningMode && hunt) {
-    return <BonusOpeningOverlay huntId={hunt.id} embedded={embedded} />;
-  }
-
   const pendingItems = items.filter(item => item.status === 'pending');
   const openedItems = items.filter(item => item.status === 'opened');
   const superBonusCount = items.filter(item => item.is_super_bonus === true).length;
   const extremeBonusCount = items.filter(item => item.is_extreme_bonus === true).length;
-  const carouselItems = items;
   const scrollingItems = items.length > 4 ? [...items, ...items] : items;
+  const progressPct = items.length > 0 ? (openedItems.length / items.length) * 100 : 0;
 
-  const currentBreakEven = (() => {
+  const breakEvenDisplay = (() => {
     if (!hunt) return '0x';
-    const breakEven = hunt.opened_count > 0 ? hunt.current_break_even : hunt.initial_break_even;
-    return `${breakEven.toFixed(0)}x`;
+    if (isOpeningMode) return `${hunt.current_break_even.toFixed(0)}x`;
+    const be = hunt.opened_count > 0 ? hunt.current_break_even : hunt.initial_break_even;
+    return `${be.toFixed(0)}x`;
   })();
 
-  const currentMultiplier = (() => {
-    if (!hunt || hunt.total_invested === 0) return '0x';
-    const multiplier = hunt.total_won / hunt.total_invested;
-    return `${multiplier.toFixed(2)}x`;
-  })();
+  // Auto-rotate card stack every 2.5s during hunt
+  useEffect(() => {
+    if (isOpeningMode || items.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveCardIndex(prev => (prev + 1) % items.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isOpeningMode, items.length]);
+
+  // During opening, snap to first pending bonus
+  useEffect(() => {
+    if (!isOpeningMode) return;
+    const idx = items.findIndex(item => item.status === 'pending');
+    if (idx >= 0) setActiveCardIndex(idx);
+  }, [isOpeningMode, items]);
+
+  // Card stack position
+  const getStackStyle = (itemIndex: number) => {
+    if (items.length === 0) return { opacity: 0 };
+    let diff = itemIndex - activeCardIndex;
+    const total = items.length;
+    if (diff > total / 2) diff -= total;
+    if (diff < -total / 2) diff += total;
+    const absDiff = Math.abs(diff);
+    const sign = diff > 0 ? 1 : diff < 0 ? -1 : 0;
+    if (absDiff === 0) return { opacity: 1, zIndex: 5, transform: 'translateX(0%) scale(1) translateZ(0px)' };
+    if (absDiff === 1) return { opacity: 0.7, zIndex: 4, transform: `translateX(${sign * 55}%) scale(0.82) translateZ(-60px)` };
+    if (absDiff === 2) return { opacity: 0.35, zIndex: 3, transform: `translateX(${sign * 95}%) scale(0.65) translateZ(-120px)` };
+    return { opacity: 0, zIndex: 0, transform: 'translateX(0) scale(0.4) translateZ(-200px)', pointerEvents: 'none' as const };
+  };
+
+  const currentBonusIndex = isOpeningMode ? items.findIndex(item => item.status === 'pending') : -1;
 
   return (
-    <div className="w-[288px] h-[720px] relative" style={{ marginTop: '0px', marginLeft: '62px' }}>
+    <div className="bht-root" style={{ width: '288px', height: '720px', position: 'relative', marginTop: '0px', marginLeft: '62px' }}>
       <style>{`
-        @keyframes slideInFromLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+        .bht-root {
+          --bht-text: #ffffff;
+          --bht-muted: #93c5fd;
+          --bht-accent: #60a5fa;
+          --bht-super: #eab308;
+          --bht-extreme: #ef4444;
+          --bht-current: #4ade80;
+          --bht-card-bg: rgba(15,21,53,0.85);
+          --bht-card-border: rgba(96,165,250,0.12);
         }
-
-        @keyframes slideInFromRight {
-          from {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+        .bht-glass-card {
+          background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(59,130,246,0.06));
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border-radius: 12px;
+          border: 1px solid rgba(96,165,250,0.15);
+          padding: 8px 12px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
         }
-
-        @keyframes slideOutToRight {
-          from {
-            opacity: 1;
-            transform: translateX(0);
-          }
-          to {
-            opacity: 0;
-            transform: translateX(100%);
-          }
+        .bht-glass-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 10%;
+          right: 10%;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        }
+        .bht-stat-label {
+          display: block;
+          font-size: 0.55em;
+          font-weight: 700;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: var(--bht-muted);
+          margin-bottom: 2px;
+        }
+        .bht-stat-value {
+          display: block;
+          font-size: 1.2em;
+          font-weight: 900;
+          color: var(--bht-text);
+          text-shadow: 0 0 12px rgba(96,165,250,0.4);
+        }
+        .bht-count-bar {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 12px;
+          padding: 10px 16px;
+          font-size: 0.7em;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          color: var(--bht-text);
+          flex: 1;
+        }
+        .bht-count-super {
+          background: rgba(234,179,8,0.12);
+          border: 1px solid rgba(234,179,8,0.3);
+        }
+        .bht-count-extreme {
+          background: rgba(239,68,68,0.12);
+          border: 1px solid rgba(239,68,68,0.3);
+        }
+        .bht-count-bonuses {
+          background: rgba(96,165,250,0.12);
+          border: 1px solid rgba(96,165,250,0.2);
+        }
+        .bht-stack-wrap {
+          position: relative;
+          height: 180px;
+          perspective: 800px;
+          perspective-origin: 50% 50%;
+          margin: 0 12px;
+        }
+        .bht-stack-card {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 110px;
+          height: 150px;
+          margin-left: -55px;
+          margin-top: -75px;
+          border-radius: 12px;
+          overflow: hidden;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          transform-style: preserve-3d;
+          backface-visibility: hidden;
+          background: var(--bht-card-bg);
+          border: 1px solid var(--bht-card-border);
+        }
+        .bht-stack-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .bht-stack-name {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(transparent, rgba(0,0,0,0.85));
+          padding: 16px 6px 5px;
+          text-align: center;
+          font-size: 0.55em;
+          font-weight: 800;
+          color: #fff;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .bht-stack-border {
+          position: absolute;
+          inset: 0;
+          border-radius: 12px;
+          pointer-events: none;
+        }
+        .bht-stack-border--super {
+          border: 2px solid var(--bht-super);
+          box-shadow: 0 0 14px rgba(234,179,8,0.35);
+        }
+        .bht-stack-border--extreme {
+          border: 2px solid var(--bht-extreme);
+          box-shadow: 0 0 14px rgba(239,68,68,0.35);
+        }
+        .bht-progress-track {
+          height: 4px;
+          border-radius: 2px;
+          background: rgba(255,255,255,0.08);
+          overflow: hidden;
+        }
+        .bht-progress-fill {
+          height: 100%;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--bht-current), #22c55e);
+          transition: width 0.7s ease-out;
+          box-shadow: 0 0 6px rgba(74,222,128,0.4);
+        }
+        .bht-list-header {
+          font-size: 0.78em;
+          font-weight: 900;
+          letter-spacing: 2.5px;
+          text-transform: uppercase;
+          color: var(--bht-accent);
+        }
+        .bht-list-container {
+          flex: 1 1 0;
+          overflow: hidden;
+          position: relative;
+          padding: 0 12px;
+        }
+        .bht-list-track {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .bht-cpt-card {
+          display: flex;
+          align-items: center;
+          background: var(--bht-card-bg);
+          border: 1px solid var(--bht-card-border);
+          border-radius: 10px;
+          padding: 5px 8px;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .bht-cpt-img {
+          width: 38px;
+          height: 38px;
+          border-radius: 6px;
+          object-fit: cover;
+          flex-shrink: 0;
+        }
+        .bht-cpt-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .bht-cpt-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 3px;
+        }
+        .bht-cpt-name {
+          font-size: 0.65em;
+          font-weight: 800;
+          color: var(--bht-text);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-transform: uppercase;
+        }
+        .bht-cpt-index {
+          font-size: 0.6em;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          flex-shrink: 0;
+          margin-left: 4px;
+        }
+        .bht-cpt-row2 {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .bht-cpt-bet {
+          font-size: 0.6em;
+          font-weight: 700;
+          color: var(--bht-accent);
+        }
+        .bht-cpt-payout {
+          font-size: 0.6em;
+          font-weight: 700;
+        }
+        .bht-cpt-multi {
+          font-size: 0.6em;
+          font-weight: 700;
+          color: #a78bfa;
+        }
+        @keyframes bhtAutoScroll {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes bhtSlideIn {
+          from { opacity: 0; transform: translateX(-100%); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bhtSlideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(100%); }
         }
       `}</style>
 
-      {hasHunt && !isOpeningMode && (
+      {hasHunt && (
         <div
-          className="w-full h-full overflow-hidden flex flex-col relative"
           style={{
-            background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '16px'
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'linear-gradient(145deg, #0a0e1a 0%, #0f1629 50%, #111d3a 100%)',
+            border: '1px solid rgba(96,165,250,0.15)',
+            borderRadius: '16px',
           }}
         >
-          <div
-            className="relative w-full flex-shrink-0 px-3 py-2.5"
-            style={{ background: 'rgba(0,0,0,0.3)' }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Gift className="w-4 h-4 text-blue-400" />
-                <div className="flex flex-col">
-                  <h1 className="text-[10px] font-black uppercase tracking-wide text-white leading-none">
-                    BONUS HUNT
-                  </h1>
-                  <span className="text-[9px] font-semibold text-white/80 leading-none">{hunt?.streamer_name || 'fever'}</span>
-                </div>
-              </div>
-              <div className="text-[11px] font-black text-white/70">
-                #{hunt?.hunt_number || '1'}
-              </div>
+          {/* HEADER */}
+          <div style={{ textAlign: 'center', padding: '14px 0 10px', flexShrink: 0 }}>
+            <div style={{ fontSize: '1.2em', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase', color: 'var(--bht-text)' }}>
+              {isOpeningMode ? 'BONUS OPENING' : 'BONUS HUNT'}
             </div>
-
-            <div className="w-full grid grid-cols-2 gap-1.5 mb-2">
-              <div
-                className="rounded-lg px-2 py-1.5 relative overflow-hidden"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.35) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                  border: '1px solid rgba(124, 58, 237, 0.4)'
-                }}
-              >
-                <div className="absolute inset-0" style={{
-                  background: 'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.25) 25%, transparent 100%)'
-                }}></div>
-                <div className="flex flex-col items-center justify-center relative z-10">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <DollarSign className="w-2.5 h-2.5 text-purple-300" />
-                    <span className="text-[7px] font-semibold text-purple-200 uppercase leading-none tracking-wide">START</span>
-                  </div>
-                  <span className="text-[13px] font-black text-white leading-none drop-shadow-lg">${hunt?.total_invested.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div
-                className="rounded-lg px-2 py-1.5 relative overflow-hidden"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.35) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                  border: '1px solid rgba(124, 58, 237, 0.4)'
-                }}
-              >
-                <div className="absolute inset-0" style={{
-                  background: 'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.25) 25%, transparent 100%)'
-                }}></div>
-                <div className="flex flex-col items-center justify-center relative z-10">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <TrendingUp className="w-2.5 h-2.5 text-purple-300" />
-                    <span className="text-[7px] font-semibold text-purple-200 uppercase leading-none tracking-wide">BREAKEVEN</span>
-                  </div>
-                  <span className="text-[13px] font-black text-white leading-none drop-shadow-lg">{currentBreakEven}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full mb-2">
-              <div
-                className="rounded-lg px-2 py-1 relative overflow-hidden mb-2"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.35) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                  border: '1px solid rgba(124, 58, 237, 0.4)'
-                }}
-              >
-                <div className="absolute inset-0" style={{
-                  background: 'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.25) 25%, transparent 100%)'
-                }}></div>
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-1">
-                    <Gift className="w-2.5 h-2.5 text-purple-300" />
-                    <span className="text-[7px] font-semibold text-purple-200 uppercase leading-none tracking-wide">BONUSES</span>
-                  </div>
-                  <span className="text-[13px] font-black text-white leading-none drop-shadow-lg">{hunt?.bonus_count}</span>
-                </div>
-              </div>
-
-              <div className="w-full grid grid-cols-2 gap-1.5">
-                <div
-                  className="rounded-lg px-2 py-1 relative overflow-hidden"
-                  style={{
-                    background: 'radial-gradient(ellipse at center, rgba(234, 179, 8, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                    border: '1px solid rgba(234, 179, 8, 0.5)'
-                  }}
-                >
-                  <div className="absolute inset-0" style={{
-                    background: 'radial-gradient(circle at 50% 50%, rgba(234, 179, 8, 0.3) 25%, transparent 100%)'
-                  }}></div>
-                  <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-1">
-                      <Zap className="w-2.5 h-2.5 text-yellow-300" />
-                      <span className="text-[7px] font-semibold text-yellow-200 uppercase leading-none tracking-wide">SUPER</span>
-                    </div>
-                    <span className="text-[13px] font-black text-white leading-none drop-shadow-lg">{superBonusCount}</span>
-                  </div>
-                </div>
-
-                <div
-                  className="rounded-lg px-2 py-1 relative overflow-hidden"
-                  style={{
-                    background: 'radial-gradient(ellipse at center, rgba(239, 68, 68, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                    border: '1px solid rgba(239, 68, 68, 0.5)'
-                  }}
-                >
-                  <div className="absolute inset-0" style={{
-                    background: 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.3) 25%, transparent 100%)'
-                  }}></div>
-                  <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-1">
-                      <Flame className="w-2.5 h-2.5 text-red-300" />
-                      <span className="text-[7px] font-semibold text-red-200 uppercase leading-none tracking-wide">EXTREME</span>
-                    </div>
-                    <span className="text-[13px] font-black text-white leading-none drop-shadow-lg">{extremeBonusCount}</span>
-                  </div>
-                </div>
-              </div>
+            <div style={{ fontSize: '0.58em', fontWeight: 700, letterSpacing: '4px', textTransform: 'uppercase', color: 'var(--bht-muted)', opacity: 0.6 }}>
+              FEVER
             </div>
           </div>
 
-          <div
-            className="flex-1 overflow-hidden flex flex-col"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5))' }}
-          >
-            <Carousel3D
-              id="hunt-c3d"
-              height="200px"
-              cardWidth={110}
-              gap={14}
-              speed={42}
-              items={carouselItems.map((item) => {
+          {/* STATS ROW */}
+          <div style={{ display: 'flex', gap: '6px', padding: '0 12px', marginBottom: '8px', flexShrink: 0 }}>
+            <div className="bht-glass-card" style={{ flex: 1 }}>
+              <span className="bht-stat-label">START</span>
+              <span className="bht-stat-value">€{hunt?.total_invested.toFixed(2)}</span>
+            </div>
+            <div className="bht-glass-card" style={{ flex: 1 }}>
+              <span className="bht-stat-label">BREAKEVEN</span>
+              <span className="bht-stat-value">{breakEvenDisplay}</span>
+            </div>
+          </div>
+
+          {/* COUNT BARS */}
+          <div style={{ padding: '0 12px', marginBottom: '6px', flexShrink: 0 }}>
+            {(superBonusCount > 0 || extremeBonusCount > 0) && (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                {superBonusCount > 0 && (
+                  <div className="bht-count-bar bht-count-super">
+                    <span>⚡</span><span>SUPER</span><span style={{ marginLeft: 'auto', fontWeight: 900 }}>{superBonusCount}</span>
+                  </div>
+                )}
+                {extremeBonusCount > 0 && (
+                  <div className="bht-count-bar bht-count-extreme">
+                    <span>🔥</span><span>EXTREME</span><span style={{ marginLeft: 'auto', fontWeight: 900 }}>{extremeBonusCount}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="bht-count-bar bht-count-bonuses">
+              <span>🎰</span><span>BONUSES</span><span style={{ marginLeft: 'auto', fontWeight: 900 }}>{items.length}</span>
+            </div>
+          </div>
+
+          {/* 3D CARD STACK */}
+          <div className="bht-stack-wrap" style={{ flexShrink: 0 }}>
+            {items.map((item, i) => {
+              let diff = i - activeCardIndex;
+              if (diff > items.length / 2) diff -= items.length;
+              if (diff < -items.length / 2) diff += items.length;
+              if (Math.abs(diff) > 3) return null;
+              const isOpened = item.status === 'opened';
+              return (
+                <div key={item.id} className="bht-stack-card" style={getStackStyle(i)}>
+                  <img
+                    src={item.slot_image_url || '/image.png'}
+                    alt={item.slot_name}
+                    className="bht-stack-img"
+                    style={{ filter: isOpened ? 'brightness(0.45)' : 'none' }}
+                    onError={(e) => { e.currentTarget.src = '/image.png'; }}
+                  />
+                  <div className="bht-stack-name">{item.slot_name}</div>
+                  {item.is_super_bonus === true && <div className="bht-stack-border bht-stack-border--super" />}
+                  {item.is_extreme_bonus === true && <div className="bht-stack-border bht-stack-border--extreme" />}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* PROGRESS BAR */}
+          <div style={{ padding: '6px 16px 8px', flexShrink: 0 }}>
+            <div className="bht-progress-track">
+              <div className="bht-progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+
+          {/* BONUS LIST HEADER */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px 6px', flexShrink: 0 }}>
+            <span style={{ fontSize: '0.9em' }}>📋</span>
+            <span className="bht-list-header">BONUS LIST</span>
+          </div>
+
+          {/* BONUS LIST */}
+          <div className="bht-list-container">
+            <div
+              className="bht-list-track"
+              style={
+                isOpeningMode && currentBonusIndex >= 0
+                  ? { transform: `translateY(-${currentBonusIndex * 58}px)`, transition: 'transform 0.5s ease-out' }
+                  : items.length > 4
+                    ? { animation: `bhtAutoScroll ${Math.max(18, items.length * 3.5)}s linear infinite` }
+                    : undefined
+              }
+            >
+              {(isOpeningMode ? items : scrollingItems).map((item, index) => {
+                const actualIndex = items.length > 0 ? (index % items.length) : 0;
                 const payment = item.payment_amount || item.bet_amount;
                 const isOpened = item.status === 'opened';
                 const isWin = isOpened && (item.result_amount || 0) > payment;
-                return {
-                  id: item.id,
-                  render: () => (
-                    <>
-                      {/* Blurred parallax background */}
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url("${item.slot_image_url || '/image.png'}")`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          filter: 'blur(10px) brightness(0.3)',
-                          transform: 'scale(1.15)',
-                        }}
-                      />
-                      {/* Super / Extreme neon border overlay */}
-                      {item.is_super_bonus === true && (
-                        <div className="absolute inset-0 rounded-xl pointer-events-none" style={{
-                          boxShadow: 'inset 0 0 12px rgba(255,215,0,0.4), 0 0 18px rgba(255,215,0,0.35)',
-                          border: '2px solid rgba(255, 215, 0, 0.9)',
-                        }} />
-                      )}
-                      {item.is_extreme_bonus === true && (
-                        <div className="absolute inset-0 rounded-xl pointer-events-none" style={{
-                          boxShadow: 'inset 0 0 12px rgba(239,68,68,0.4), 0 0 18px rgba(239,68,68,0.35)',
-                          border: '2px solid rgba(239, 68, 68, 0.9)',
-                        }} />
-                      )}
-                      {/* Top bar – name + bet */}
-                      <div className="relative z-10 flex items-center justify-between gap-1 bg-black/55 px-1.5 py-1 flex-shrink-0 backdrop-blur-sm">
-                        <span className="text-[8px] font-black text-white truncate uppercase">{item.slot_name}</span>
-                        <span className="text-[8px] font-bold text-sky-300 whitespace-nowrap">€{payment.toFixed(2)}</span>
+                const isFirst = index < items.length;
+                const isNew = newItemIds.has(item.id) && isFirst;
+                const isRemoved = removedItemIds.has(item.id);
+                const isCurrent = isOpeningMode && actualIndex === currentBonusIndex;
+
+                return (
+                  <div
+                    key={`${item.id}-${index}`}
+                    className="bht-cpt-card"
+                    style={{
+                      borderLeft: item.is_super_bonus === true ? '3px solid var(--bht-super)'
+                        : item.is_extreme_bonus === true ? '3px solid var(--bht-extreme)'
+                        : isCurrent ? '3px solid var(--bht-current)'
+                        : '1px solid var(--bht-card-border)',
+                      boxShadow: item.is_super_bonus === true ? '0 0 10px rgba(234,179,8,0.2)'
+                        : item.is_extreme_bonus === true ? '0 0 10px rgba(239,68,68,0.2)'
+                        : isCurrent ? '0 0 10px rgba(74,222,128,0.2)'
+                        : 'none',
+                      animation: isNew ? 'bhtSlideIn 0.5s ease-out'
+                        : isRemoved ? 'bhtSlideOut 0.4s ease-in forwards'
+                        : 'none',
+                    }}
+                  >
+                    <img
+                      src={item.slot_image_url || '/image.png'}
+                      alt={item.slot_name}
+                      className="bht-cpt-img"
+                      onError={(e) => { e.currentTarget.src = '/image.png'; }}
+                    />
+                    <div className="bht-cpt-info">
+                      <div className="bht-cpt-row1">
+                        <span className="bht-cpt-name">{item.slot_name}</span>
+                        <span className="bht-cpt-index">#{actualIndex + 1}</span>
                       </div>
-                      {/* Slot image */}
-                      <div className="relative z-10 flex-1 overflow-hidden">
-                        <img
-                          src={item.slot_image_url || '/image.png'}
-                          alt={item.slot_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.currentTarget.src = '/image.png'; }}
-                        />
-                        {item.is_extreme_bonus === true && (
-                          <span className="absolute bottom-1 left-1 rounded bg-red-500 px-1 py-0.5 text-[7px] font-black uppercase text-white z-10 shadow-lg">EXTREME</span>
-                        )}
-                        {item.is_super_bonus === true && (
-                          <span className="absolute bottom-1 left-1 rounded bg-yellow-500 px-1 py-0.5 text-[7px] font-black uppercase text-white z-10 shadow-lg">SUPER</span>
-                        )}
-                      </div>
-                      {/* Bottom bar – payout / index */}
-                      <div className="relative z-10 flex items-center justify-between bg-black/60 px-1.5 py-1 flex-shrink-0 backdrop-blur-sm">
-                        <span className="text-[8px] font-bold" style={{ color: isOpened ? (isWin ? '#4ade80' : '#f87171') : '#fbbf24' }}>
-                          {isOpened ? `€${(item.result_amount || 0).toFixed(0)}` : 'PENDING'}
-                        </span>
-                        <span className="rounded bg-black/50 px-1 py-0.5 text-[8px] font-black text-amber-300">
-                          {isOpened ? `${(item.multiplier || 0).toFixed(1)}x` : `#${(carouselItems.indexOf(item) + 1)}`}
-                        </span>
-                      </div>
-                    </>
-                  ),
-                } as Carousel3DItem;
-              })}
-            />
-
-            {/* Progress bar */}
-            <div className="flex items-center gap-2 px-4 pt-1 pb-1 flex-shrink-0">
-              <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{
-                    width: `${items.length > 0 ? (openedItems.length / items.length) * 100 : 0}%`,
-                    background: 'linear-gradient(90deg, #60a5fa, #a855f7)',
-                    boxShadow: '0 0 8px rgba(96,165,250,0.5)',
-                  }}
-                />
-              </div>
-              <span className="text-[9px] font-bold text-white/60 whitespace-nowrap">
-                {openedItems.length}/{items.length}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mb-2 px-4 pt-1 flex-shrink-0">
-              <div className="w-1 h-5 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
-              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#fbbf24' }}>
-                BONUS LIST
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-hidden px-4 pb-4">
-              <style>{`
-                @keyframes huntListScroll {
-                  0% { transform: translateY(0); }
-                  100% { transform: translateY(-50%); }
-                }
-              `}</style>
-              <div
-                className="space-y-2"
-                style={{
-                  animation: items.length > 4 ? `huntListScroll ${Math.max(15, items.length * 3)}s linear infinite` : 'none'
-                }}
-              >
-                {scrollingItems.map((item, index) => {
-                  const actualIndex = items.length > 0 ? (index % items.length) : 0;
-                  const cardIsTall = actualIndex % 2 === 1;
-                  const payment = item.payment_amount || item.bet_amount;
-                  const isOpened = item.status === 'opened';
-                  const isWin = isOpened && (item.result_amount || 0) > payment;
-                  const isFirstOccurrence = index < items.length;
-                  const isNewItem = newItemIds.has(item.id) && isFirstOccurrence;
-                  const isRemovedItem = removedItemIds.has(item.id);
-
-                  return (
-                    <div
-                      key={`${item.id}-${index}`}
-                      className="rounded-xl overflow-hidden relative"
-                      style={{
-                        minHeight: cardIsTall ? '88px' : '66px',
-                        background: isOpened
-                          ? (isWin ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)')
-                          : 'rgba(251, 191, 36, 0.15)',
-                        border: item.is_super_bonus === true
-                          ? '2px solid rgba(255, 215, 0, 0.95)'
-                          : item.is_extreme_bonus === true
-                          ? '2px solid rgba(239, 68, 68, 0.95)'
-                          : isOpened
-                          ? `1px solid ${isWin ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`
-                          : '1px solid rgba(251, 191, 36, 0.35)',
-                        animation: isNewItem
-                          ? 'slideInFromLeft 0.6s ease-out'
-                          : isRemovedItem
-                          ? 'slideOutToRight 0.5s ease-in forwards'
-                          : 'none'
-                      }}
-                    >
-                      {item.slot_image_url && (
-                        <div
-                          className="absolute inset-0 opacity-20"
-                          style={{
-                            backgroundImage: `url("${item.slot_image_url}"), url("/image.png")`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            filter: 'blur(10px)',
-                            transform: 'scale(1.08)'
-                          }}
-                        />
-                      )}
-
-                      <div className="flex items-center relative z-10 h-full">
-                        <div className={`${cardIsTall ? 'w-14' : 'w-12'} h-full flex-shrink-0 overflow-hidden`}>
-                          <img
-                            src={item.slot_image_url || '/image.png'}
-                            alt={item.slot_name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = '/image.png';
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0 px-2.5 py-2">
-                          <div className="text-white text-xs font-black truncate mb-1">{item.slot_name}</div>
-                          <div className="flex items-center gap-1.5 text-[10px]">
-                            <span className="font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' }}>
-                              €{payment.toFixed(2)}
+                      <div className="bht-cpt-row2">
+                        <span className="bht-cpt-bet">€{payment.toFixed(2)}</span>
+                        {isOpened && (
+                          <>
+                            <span className="bht-cpt-payout" style={{ color: isWin ? 'var(--bht-current)' : 'var(--bht-extreme)' }}>
+                              €{(item.result_amount || 0).toFixed(0)}
                             </span>
-                            {isOpened && (
-                              <>
-                                <span className="font-bold px-1.5 py-0.5 rounded" style={{ background: isWin ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: isWin ? '#10b981' : '#ef4444' }}>
-                                  €{item.result_amount?.toFixed(0) || '0'}
-                                </span>
-                                <span className="font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#a855f7' }}>
-                                  {item.multiplier?.toFixed(1) || '0.0'}x
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="pr-2 text-[10px] font-black" style={{ color: 'rgba(251, 191, 36, 0.55)' }}>
-                          #{actualIndex + 1}
-                        </div>
+                            <span className="bht-cpt-multi">{(item.multiplier || 0).toFixed(1)}x</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
