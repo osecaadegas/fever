@@ -370,21 +370,45 @@
 .bht-cpt-card--super {
   border: 1.5px solid rgba(234,179,8,0.7);
   box-shadow: 0 0 8px 1px rgba(234,179,8,0.25), inset 0 0 6px rgba(234,179,8,0.08);
-  animation: bht-cpt-super-pulse 3s ease-in-out infinite;
+  position: relative;
 }
-@keyframes bht-cpt-super-pulse {
-  0%, 100% { box-shadow: 0 0 8px 1px rgba(234,179,8,0.25), inset 0 0 6px rgba(234,179,8,0.08); }
-  50%      { box-shadow: 0 0 14px 3px rgba(234,179,8,0.4), inset 0 0 8px rgba(234,179,8,0.12); }
+.bht-cpt-card--super::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 13px;
+  border: 2px solid rgba(234,179,8,0.6);
+  box-shadow: 0 0 10px 2px rgba(234,179,8,0.3), inset 0 0 10px 2px rgba(234,179,8,0.1);
+  z-index: 5;
+  pointer-events: none;
+  animation: bht-super-glow 3s ease-in-out infinite;
+}
+@keyframes bht-super-glow {
+  0%, 100% { opacity: 0.5; box-shadow: 0 0 8px 1px rgba(234,179,8,0.2), inset 0 0 8px 1px rgba(234,179,8,0.06); }
+  50%      { opacity: 1;   box-shadow: 0 0 16px 4px rgba(234,179,8,0.5), inset 0 0 12px 3px rgba(234,179,8,0.15); }
 }
 .bht-cpt-card--extreme {
   border: 1.5px solid rgba(220,38,38,0.8);
   box-shadow: 0 0 10px 2px rgba(220,38,38,0.35), inset 0 0 6px rgba(220,38,38,0.1);
-  animation: bht-cpt-extreme-vibrate 0.4s ease-in-out infinite alternate;
+  position: relative;
 }
-@keyframes bht-cpt-extreme-vibrate {
-  0%   { transform: translateX(-0.5px); box-shadow: 0 0 10px 2px rgba(220,38,38,0.35), inset 0 0 6px rgba(220,38,38,0.1); }
-  50%  { transform: translateX(0.5px);  box-shadow: 0 0 16px 4px rgba(220,38,38,0.5), inset 0 0 8px rgba(220,38,38,0.15); }
-  100% { transform: translateX(-0.3px); box-shadow: 0 0 10px 2px rgba(220,38,38,0.35), inset 0 0 6px rgba(220,38,38,0.1); }
+.bht-cpt-card--extreme::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 13px;
+  border: 2px solid rgba(220,38,38,0.7);
+  box-shadow: 0 0 12px 3px rgba(220,38,38,0.4), inset 0 0 10px 2px rgba(220,38,38,0.12);
+  z-index: 5;
+  pointer-events: none;
+  animation: bht-extreme-shake 0.15s linear infinite alternate;
+}
+@keyframes bht-extreme-shake {
+  0%   { transform: translateX(-0.6px) translateY(0.3px); }
+  25%  { transform: translateX(0.4px) translateY(-0.3px); }
+  50%  { transform: translateX(-0.3px) translateY(0.2px); }
+  75%  { transform: translateX(0.5px) translateY(-0.2px); }
+  100% { transform: translateX(-0.4px) translateY(0.3px); }
 }
 
 /* Full-bleed background image */
