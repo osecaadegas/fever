@@ -476,12 +476,18 @@
   color: #93c5fd;
   white-space: nowrap;
   text-shadow: 0 1px 4px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 .bht-cpt-card-payout {
   font-weight: 700;
   color: #4ade80;
   white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 .bht-cpt-card-multi {
   font-weight: 800;
