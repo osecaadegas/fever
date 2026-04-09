@@ -88,15 +88,15 @@ function BonusHuntWidget({ config }: { config: BonusHuntConfig }) {
     el.animate([
       { transform: 'translateX(0)', opacity: 1 },
       { transform: 'translateX(-110%)', opacity: 0 },
-    ], { duration: 800, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'forwards' })
+    ], { duration: 1100, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'forwards' })
       .onfinish = () => {
         // Pause, then slowly slide in from the left to center
         setTimeout(() => {
           el.animate([
             { transform: 'translateX(-110%)', opacity: 0 },
             { transform: 'translateX(0)', opacity: 1 },
-          ], { duration: 1200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' });
-        }, 500);
+          ], { duration: 1800, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' });
+        }, 1300);
       };
   }, [c.bonusOpening]);
 
