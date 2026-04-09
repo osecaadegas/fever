@@ -20,6 +20,7 @@ export function MainStreamOverlay() {
     type: null,
     id: null,
   });
+  const overlayStateRef = useRef<OverlayState>({ type: null, id: null });
   const [leavingOverlay, setLeavingOverlay] = useState<OverlayState | null>(null);
   const [enteringOverlay, setEnteringOverlay] = useState<OverlayState | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,7 +86,9 @@ export function MainStreamOverlay() {
 
     if (activeOpening) {
       console.log('[Main Init] Setting overlay to opening:', activeOpening.id);
-      setOverlayState({ type: 'opening', id: activeOpening.id });
+      const s = { type: 'opening' as OverlayType, id: activeOpening.id };
+      overlayStateRef.current = s;
+      setOverlayState(s);
       return;
     }
 
@@ -99,7 +102,9 @@ export function MainStreamOverlay() {
 
     if (activeHunt) {
       console.log('[Main Init] Setting overlay to hunt:', activeHunt.id);
-      setOverlayState({ type: 'hunt', id: activeHunt.id });
+      const s = { type: 'hunt' as OverlayType, id: activeHunt.id };
+      overlayStateRef.current = s;
+      setOverlayState(s);
       return;
     }
 
@@ -114,7 +119,9 @@ export function MainStreamOverlay() {
 
     if (activeTournament) {
       console.log('[Main Init] Setting overlay to tournament:', activeTournament.id);
-      setOverlayState({ type: 'tournament', id: activeTournament.id });
+      const s = { type: 'tournament' as OverlayType, id: activeTournament.id };
+      overlayStateRef.current = s;
+      setOverlayState(s);
       return;
     }
 
@@ -149,7 +156,9 @@ export function MainStreamOverlay() {
 
     if (chillSession) {
       console.log('[Main Init] Setting overlay to chill:', chillSession.id);
-      setOverlayState({ type: 'chill', id: chillSession.id });
+      const s = { type: 'chill' as OverlayType, id: chillSession.id };
+      overlayStateRef.current = s;
+      setOverlayState(s);
     }
   };
 
@@ -265,8 +274,10 @@ export function MainStreamOverlay() {
 
   const transitionTo = (type: OverlayType, id: string | null) => {
     const nextOverlay: OverlayState = { type, id };
+    const cur = overlayStateRef.current;
 
-    if (overlayState.type === nextOverlay.type && overlayState.id === nextOverlay.id) {
+    // Compare against ref (not stale closure state) to avoid false transitions
+    if (cur.type === nextOverlay.type && cur.id === nextOverlay.id) {
       return;
     }
 
@@ -274,17 +285,24 @@ export function MainStreamOverlay() {
     if (enterStartTimerRef.current) clearTimeout(enterStartTimerRef.current);
     if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
 
-    const currentOverlay = overlayState.type ? overlayState : null;
+    const currentOverlay = cur.type ? cur : null;
+
+    const commitState = (s: OverlayState) => {
+      overlayStateRef.current = s;
+      setOverlayState(s);
+    };
 
     if (!currentOverlay && nextOverlay.type) {
+      overlayStateRef.current = nextOverlay; // mark immediately to block duplicates
       setEnteringOverlay(nextOverlay);
       cleanupTimerRef.current = setTimeout(() => {
-        setOverlayState(nextOverlay);
+        commitState(nextOverlay);
         setEnteringOverlay(null);
       }, ENTER_DURATION_MS);
       return;
     }
 
+    overlayStateRef.current = nextOverlay; // mark immediately
     setLeavingOverlay(currentOverlay);
     setEnteringOverlay(null);
 
@@ -294,6 +312,7 @@ export function MainStreamOverlay() {
     }, EXIT_DURATION_MS);
 
     if (!nextOverlay.type) {
+      overlayStateRef.current = { type: null, id: null };
       return;
     }
 
@@ -302,7 +321,7 @@ export function MainStreamOverlay() {
     }, EXIT_DURATION_MS + SWITCH_DELAY_MS);
 
     cleanupTimerRef.current = setTimeout(() => {
-      setOverlayState(nextOverlay);
+      commitState(nextOverlay);
       setEnteringOverlay(null);
     }, EXIT_DURATION_MS + SWITCH_DELAY_MS + ENTER_DURATION_MS);
   };
@@ -408,9 +427,7 @@ export function MainStreamOverlay() {
 
               {!leavingOverlay && !enteringOverlay && (
                 <div className="h-full">
-                  <div className="h-full no-overlay-effects">
-                    {renderLeftOverlay(overlayState)}
-                  </div>
+                  {renderLeftOverlay(overlayState)}
                 </div>
               )}
             </div>
